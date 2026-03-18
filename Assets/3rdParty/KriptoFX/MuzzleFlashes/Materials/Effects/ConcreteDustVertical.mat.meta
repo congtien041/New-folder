@@ -1,0 +1,13 @@
+fileFormatVersion: 2
+guid: 37f9ab736f84ee04a838b948216154de
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/3rdParty/KriptoFX/MuzzleFlashes/Materials/Effects/ConcreteDustVertical.mat
+  uploadId: 765460

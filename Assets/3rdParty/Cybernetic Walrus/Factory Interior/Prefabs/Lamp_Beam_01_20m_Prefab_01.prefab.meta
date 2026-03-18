@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 765fefb198c20684ca851e928acf530b
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/3rdParty/Cybernetic Walrus/Factory Interior/Prefabs/Lamp_Beam_01_20m_Prefab_01.prefab
+  uploadId: 765460

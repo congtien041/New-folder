@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 6828507a82c1f1c4daa95f99d7e84f8b
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/Photon/FusionMenu/Editor/FusionMenuMachineIdImporter.cs
+  uploadId: 765460

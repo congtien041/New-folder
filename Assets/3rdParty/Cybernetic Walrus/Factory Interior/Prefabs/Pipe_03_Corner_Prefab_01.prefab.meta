@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 7f7cac86ffb7303409fb5606faf2cd2a
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/3rdParty/Cybernetic Walrus/Factory Interior/Prefabs/Pipe_03_Corner_Prefab_01.prefab
+  uploadId: 765460

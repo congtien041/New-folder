@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: b9abe105d5282b64682ef15dace9ba19
+labels:
+- FusionPrefab
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/Prefabs/SprayDecal.prefab
+  uploadId: 765460

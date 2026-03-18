@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: f80a719c68b533d42b92b6728ab51dc6
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 9100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/Photon/FusionMenu/Runtime/RuntimeAssets/FusionMenuViewScenes.controller
+  uploadId: 765460

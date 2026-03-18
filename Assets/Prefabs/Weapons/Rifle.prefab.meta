@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 16285cb8a18d2452f81ed4314c8b41f8
+labels:
+- QuantumAsset
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/Prefabs/Weapons/Rifle.prefab
+  uploadId: 765460

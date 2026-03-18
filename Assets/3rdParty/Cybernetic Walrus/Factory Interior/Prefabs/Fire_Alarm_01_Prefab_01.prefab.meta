@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 7e3611a56e78fc247994c090f8795cb2
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/3rdParty/Cybernetic Walrus/Factory Interior/Prefabs/Fire_Alarm_01_Prefab_01.prefab
+  uploadId: 765460

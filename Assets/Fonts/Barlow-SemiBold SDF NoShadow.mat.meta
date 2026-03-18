@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 882bbfffe12c7df42b24d988ed573301
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/Fonts/Barlow-SemiBold SDF NoShadow.mat
+  uploadId: 765460

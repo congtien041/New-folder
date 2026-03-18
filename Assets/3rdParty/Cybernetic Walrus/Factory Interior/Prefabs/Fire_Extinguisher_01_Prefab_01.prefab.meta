@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: cf81d94c328b77a4494785a27f7166bf
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/3rdParty/Cybernetic Walrus/Factory Interior/Prefabs/Fire_Extinguisher_01_Prefab_01.prefab
+  uploadId: 765460

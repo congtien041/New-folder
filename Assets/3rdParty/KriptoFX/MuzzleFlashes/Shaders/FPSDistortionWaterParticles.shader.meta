@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 4c452a5f81313b34c996c64e292acd0a
+ShaderImporter:
+  defaultTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/3rdParty/KriptoFX/MuzzleFlashes/Shaders/FPSDistortionWaterParticles.shader
+  uploadId: 765460

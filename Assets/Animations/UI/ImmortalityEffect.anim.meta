@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 4d1a76f50fc5add49b351c30daae7f43
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/Animations/UI/ImmortalityEffect.anim
+  uploadId: 765460

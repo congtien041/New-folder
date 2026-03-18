@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: eda0b8fb7e8c03642a26d0c819eb1630
+DefaultImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/Scenes/Deathmatch.unity
+  uploadId: 765460

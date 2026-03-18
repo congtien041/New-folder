@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 03c2ae0fa39597e4f92a5111e3228c63
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/3rdParty/Cybernetic Walrus/Factory Interior/Prefabs/Cabletray_01_5m_Prefab_01.prefab
+  uploadId: 765460

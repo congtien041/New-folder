@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 9d3fffebb105db348bdfa6ff91a3897d
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/Settings/URP_High.asset
+  uploadId: 765460

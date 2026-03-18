@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 4209305790b6af64caf47061cbcdbb61
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/3rdParty/General Purpose Industrial Container Pack/Prefabs/Propane
+    Tank.prefab
+  uploadId: 765460

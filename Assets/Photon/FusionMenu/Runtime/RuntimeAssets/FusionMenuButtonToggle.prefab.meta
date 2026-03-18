@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: c377bdf38ee9e064ca0744266f8ab161
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/Photon/FusionMenu/Runtime/RuntimeAssets/FusionMenuButtonToggle.prefab
+  uploadId: 765460

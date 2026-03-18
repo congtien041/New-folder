@@ -1,0 +1,10 @@
+fileFormatVersion: 2
+guid: f2116cfc904141fda5c32083c79da96d
+timeCreated: 1684239347
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/Scripts/UI/UICrosshair.cs
+  uploadId: 765460

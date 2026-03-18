@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: f2453b6d81c55ec4c9311e19f46a6bb1
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/Prefabs/UI/Elements/SliderWithText.prefab
+  uploadId: 765460

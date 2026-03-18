@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: dca884ec4da435a4e8fe182ea5ca49fe
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 4890085278179872738
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/Scenes/Deathmatch/DeathmatchLightingSettings.lighting
+  uploadId: 765460

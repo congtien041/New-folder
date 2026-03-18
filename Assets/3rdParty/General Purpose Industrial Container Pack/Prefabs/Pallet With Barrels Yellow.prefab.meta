@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: db6fa464671e93140987172cd6d80769
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/3rdParty/General Purpose Industrial Container Pack/Prefabs/Pallet
+    With Barrels Yellow.prefab
+  uploadId: 765460

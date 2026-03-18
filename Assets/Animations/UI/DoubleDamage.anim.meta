@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: e8250f8c4e5c1954f8735c1a9bee39a1
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/Animations/UI/DoubleDamage.anim
+  uploadId: 765460

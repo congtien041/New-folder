@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 51cf2bf036776654d9d6f48d0cd6b09e
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/3rdParty/General Purpose Industrial Container Pack/Prefabs/Shipping
+    Container Red.prefab
+  uploadId: 765460

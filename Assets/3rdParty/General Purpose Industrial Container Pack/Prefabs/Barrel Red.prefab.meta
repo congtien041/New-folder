@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: b78df476be0a1b14a859af20ed453302
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/3rdParty/General Purpose Industrial Container Pack/Prefabs/Barrel
+    Red.prefab
+  uploadId: 765460

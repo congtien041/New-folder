@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 23e15a2a77e2b9a4daf2ba2719c0727f
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/3rdParty/Cybernetic Walrus/Factory Interior/Prefabs/Decals/Decal_Fire_02_Prefab_01.prefab
+  uploadId: 765460

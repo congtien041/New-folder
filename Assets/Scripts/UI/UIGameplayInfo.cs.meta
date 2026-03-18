@@ -1,0 +1,10 @@
+﻿fileFormatVersion: 2
+guid: 401d957ce535479e8f588e9b49370d6e
+timeCreated: 1684311787
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/Scripts/UI/UIGameplayInfo.cs
+  uploadId: 765460

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 796c23c0c4dd99844b45209377be147a
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/3rdParty/Cybernetic Walrus/Factory Interior/Models/Materials/Fire_Closet_01.mat
+  uploadId: 765460

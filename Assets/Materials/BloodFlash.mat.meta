@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 0765f2f53080b47a99b92fc8bbcc5af8
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/Materials/BloodFlash.mat
+  uploadId: 765460

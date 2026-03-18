@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: b287f5a3e14a9cb42b3fe91794c3877f
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/Prefabs/UI/Views/GameplayView.prefab
+  uploadId: 765460

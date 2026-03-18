@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 58eb399dc6162a041b5fe246273661bb
+ShaderImporter:
+  defaultTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/3rdParty/KriptoFX/MuzzleFlashes/Shaders/AlphaBlendedAnim.shader
+  uploadId: 765460

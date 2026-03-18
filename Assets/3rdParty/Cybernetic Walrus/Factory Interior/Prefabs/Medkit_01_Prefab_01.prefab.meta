@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 08ccaa42ceb4219459d71dd95dd30f58
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/3rdParty/Cybernetic Walrus/Factory Interior/Prefabs/Medkit_01_Prefab_01.prefab
+  uploadId: 765460

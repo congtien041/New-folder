@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 594e47daecfbbb04887cbecc45268449
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/Prefabs/UI/Elements/Scoreboard.prefab
+  uploadId: 765460

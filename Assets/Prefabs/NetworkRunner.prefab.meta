@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: c12a75a40c6d20741bb5e98bcc32e9bc
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/Prefabs/NetworkRunner.prefab
+  uploadId: 765460

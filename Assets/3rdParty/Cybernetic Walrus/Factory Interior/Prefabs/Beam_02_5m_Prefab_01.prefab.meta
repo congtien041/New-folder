@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: a845902fedb478d45b532c9e318713e4
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/3rdParty/Cybernetic Walrus/Factory Interior/Prefabs/Beam_02_5m_Prefab_01.prefab
+  uploadId: 765460

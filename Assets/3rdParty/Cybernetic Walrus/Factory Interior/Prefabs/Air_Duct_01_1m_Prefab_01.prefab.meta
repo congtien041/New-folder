@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: bb895333a2c297046982a7e19d1b2f95
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/3rdParty/Cybernetic Walrus/Factory Interior/Prefabs/Air_Duct_01_1m_Prefab_01.prefab
+  uploadId: 765460

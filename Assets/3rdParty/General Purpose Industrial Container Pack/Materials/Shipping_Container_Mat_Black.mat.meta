@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: e1b93f7eb2a88f6438872e0297d4b8c5
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/3rdParty/General Purpose Industrial Container Pack/Materials/Shipping_Container_Mat_Black.mat
+  uploadId: 765460

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 400600527bfa46241962ec2a3280f4e0
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 272941
+  packageName: Simple FPS Multiplayer - Photon Fusion
+  packageVersion: 2.0.12
+  assetPath: Assets/Prefabs/UI/Elements/SecondaryButton.prefab
+  uploadId: 765460
