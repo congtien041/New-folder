@@ -332,11 +332,35 @@ public void PlayerKilled(PlayerRef killerPlayerRef, PlayerRef victimPlayerRef, E
 
 		private void StopGameplay()
 		{
+            // (Nếu có sẵn các dòng code cũ ở đầu thì giữ nguyên)
 			RecalculateStatisticPositions();
+			State = EGameplayState.Finished; // Đánh dấu hết trận
 
-			State = EGameplayState.Finished;
+            // --- CODE MỚI: TÍNH THẮNG THUA VÀ LƯU RANK ---
+            if (PlayerData.TryGet(Runner.LocalPlayer, out var myData))
+            {
+                bool isWin = false;
+                
+                if (IsTeamMode)
+                {
+                    // Chế độ 2v2: Đội mình có điểm cao hơn đội kia thì là Thắng
+                    if (myData.Team == 1 && Team1Score > Team2Score) isWin = true;
+                    else if (myData.Team == 2 && Team2Score > Team1Score) isWin = true;
+                }
+                else
+                {
+                    // Chế độ Bắn Tự Do (FFA): Đứng Top 1 trên bảng điểm thì là Thắng
+                    if (myData.StatisticPosition == 1) isWin = true;
+                }
+
+                // Gọi hàm lưu dữ liệu lên Supabase
+                if (SupabaseManager.Instance != null && SupabaseManager.Instance.IsLoggedIn)
+                {
+                    _ = SupabaseManager.Instance.UpdateMatchResult(isWin, myData.Kills, myData.Deaths);
+                }
+            }
+            // ----------------------------------------------
 		}
-
 		private void RecalculateStatisticPositions()
 		{
 			if (State == EGameplayState.Finished)

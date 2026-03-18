@@ -191,6 +191,50 @@ namespace SimpleFPS
             }
         }
 
-        
+        // --- 1. HÀM TÍNH TOÁN VÀ LƯU KẾT QUẢ KHI HẾT TRẬN ---
+        public async Task UpdateMatchResult(bool isWin, int kills, int deaths)
+        {
+            if (!IsLoggedIn) return;
+
+            // Tính Vàng
+            int goldEarned = kills * 10;
+            
+            // Tính Rank
+            int matchPoint = isWin ? 20 : -30; // Thắng được 20, Thua bị trừ 30
+            int rankEarned = matchPoint + (kills * 10) - (deaths * 2);
+
+            // Cộng vào Profile
+            CurrentProfile.Gold += goldEarned;
+            CurrentProfile.RankPoints += rankEarned;
+
+            // Không để điểm Rank bị âm (Noob nhất cũng là 0 điểm)
+            if (CurrentProfile.RankPoints < 0) CurrentProfile.RankPoints = 0;
+
+            // Đẩy lên Database
+            await _supabase.From<PlayerProfile>().Where(x => x.Id == CurrentProfile.Id).Update(CurrentProfile);
+            
+            Debug.Log($"Trận đấu kết thúc! Vàng +{goldEarned}. Điểm Rank thay đổi: {rankEarned}. Tổng Rank: {CurrentProfile.RankPoints}");
+        }
+
+        // --- 2. HÀM LẤY DỮ LIỆU BẢNG XẾP HẠNG (TOP 10) ---
+        public async Task<System.Collections.Generic.List<PlayerProfile>> GetLeaderboard()
+        {
+            try
+            {
+                // Gọi lên DB, sắp xếp cột rank_points từ cao xuống thấp và lấy 10 người đứng đầu
+                var response = await _supabase.From<PlayerProfile>()
+                    .Select("*")
+                    .Order("rank_points", Postgrest.Constants.Ordering.Descending)
+                    .Limit(10)
+                    .Get();
+                    
+                return response.Models;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("Lỗi tải Bảng Xếp Hạng: " + e.Message);
+                return new System.Collections.Generic.List<PlayerProfile>();
+            }
+        }
     }
 }
