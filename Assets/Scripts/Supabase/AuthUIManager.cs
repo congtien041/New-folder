@@ -17,9 +17,22 @@ namespace SimpleFPS
 
         private void Start()
         {
-            AuthPanel.SetActive(true);
-            FusionMenuPanel.SetActive(false);
-            MessageText.text = "";
+            // --- ĐOẠN CODE SỬA LỖI ẨN MENU KHI LEAVE GAME ---
+            // Kiểm tra xem SupabaseManager đã có sẵn và đang đăng nhập chưa
+            if (SupabaseManager.Instance != null && SupabaseManager.Instance.IsLoggedIn)
+            {
+                // Nếu đã đăng nhập rồi (từ trong trận thoát ra) -> Bật thẳng Menu Fusion
+                AuthPanel.SetActive(false);
+                FusionMenuPanel.SetActive(true);
+                MessageText.text = "";
+            }
+            else
+            {
+                // Nếu chưa đăng nhập (mới mở game lên) -> Hiện bảng Đăng nhập
+                AuthPanel.SetActive(true);
+                FusionMenuPanel.SetActive(false);
+                MessageText.text = "";
+            }
         }
 
         public async void OnLoginClick()

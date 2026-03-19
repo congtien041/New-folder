@@ -30,7 +30,12 @@ namespace SimpleFPS
 		protected override void Awake()
 		{
 			base.Awake();
-
+		// --- ĐOẠN CODE MỚI: ÉP MENU LUÔN HIỆN KHI VỪA LOAD SCENE ---
+				foreach (Transform child in transform)
+				{
+					child.gameObject.SetActive(true);
+				}
+        // -----------------------------------------------------------
 			Cursor.lockState = CursorLockMode.None;
 			Cursor.visible = true;
 		}
