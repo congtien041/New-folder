@@ -16,6 +16,10 @@ namespace SimpleFPS
 	{
 		[Networked, Capacity(24)]
 		public string    Nickname { get => default; set {} }
+		// --- THÊM DÒNG NÀY ---
+		[Networked, Capacity(16)] 
+        public string    CharacterID { get => default; set {} } 
+        // ---------------------
 		public PlayerRef PlayerRef;
 		public int       Kills;
 		public int       Deaths;
@@ -176,10 +180,13 @@ public void PlayerKilled(PlayerRef killerPlayerRef, PlayerRef victimPlayerRef, E
 			if (Runner.Mode == SimulationModes.Server)
 				return;
 
-			// Every client must send its nickname to the server when the game is started.
 			if (_isNicknameSent == false)
 			{
-				RPC_SetPlayerNickname(Runner.LocalPlayer, PlayerPrefs.GetString("Photon.Menu.Username"));
+                // Lấy tên và nhân vật từ Ổ CỨNG (PlayerPrefs)
+                string myName = PlayerPrefs.GetString("Photon.Menu.Username");
+                string myChar = PlayerPrefs.GetString("Photon.Menu.Character", "Char_Adam"); 
+                
+				RPC_SetPlayerInfo(Runner.LocalPlayer, myName, myChar);
 				_isNicknameSent = true;
 			}
 		}
@@ -409,11 +416,21 @@ public void PlayerKilled(PlayerRef killerPlayerRef, PlayerRef victimPlayerRef, E
 			GameUI.GameplayView.KillFeed.ShowKill(killerNickname, victimNickname, weaponType, isCriticalKill);
 		}
 
+		// [Rpc(RpcSources.All, RpcTargets.StateAuthority, Channel = RpcChannel.Reliable)]
+		// private void RPC_SetPlayerNickname(PlayerRef playerRef, string nickname)
+		// {
+		// 	var playerData = PlayerData.Get(playerRef);
+		// 	playerData.Nickname = nickname;
+		// 	playerData.CharacterID = characterID; // Lưu nhân vật lên mạng
+		// 	PlayerData.Set(playerRef, playerData);
+		// }
+
 		[Rpc(RpcSources.All, RpcTargets.StateAuthority, Channel = RpcChannel.Reliable)]
-		private void RPC_SetPlayerNickname(PlayerRef playerRef, string nickname)
+		private void RPC_SetPlayerInfo(PlayerRef playerRef, string nickname, string characterID)
 		{
 			var playerData = PlayerData.Get(playerRef);
 			playerData.Nickname = nickname;
+            playerData.CharacterID = characterID; // Lưu nhân vật lên mạng
 			PlayerData.Set(playerRef, playerData);
 		}
 	}

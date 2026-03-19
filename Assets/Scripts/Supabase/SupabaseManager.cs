@@ -83,7 +83,10 @@ namespace SimpleFPS
                     Username = username,
                     DeviceId = SystemInfo.deviceUniqueIdentifier,
                     Gold = 0,
-                    RankPoints = 1000 // Điểm khởi đầu
+                    RankPoints = 1000, // Điểm khởi đầu
+                    CurrentCharacter = "Char_Adam", // Mặc định trang bị Adam
+                    UnlockedCharacters = "Char_Adam" // Tủ đồ lúc đầu chỉ có Adam
+                    
                 };
 
                 await _supabase.From<PlayerProfile>().Insert(newProfile);
@@ -142,7 +145,8 @@ namespace SimpleFPS
             if (string.IsNullOrEmpty(response.DeviceId))
             {
                 response.DeviceId = currentDevice;
-                await _supabase.From<PlayerProfile>().Where(x => x.Id == userId).Update(response);
+                // await _supabase.From<PlayerProfile>().Where(x => x.Id == userId).Update(response);
+                await _supabase.From<PlayerProfile>().Update(response);
             }
             else if (response.DeviceId != currentDevice)
             {
@@ -159,8 +163,9 @@ namespace SimpleFPS
             if (!IsLoggedIn) return false;
             
             CurrentProfile.Username = newName;
-            await _supabase.From<PlayerProfile>().Where(x => x.Id == CurrentProfile.Id).Update(CurrentProfile);
-            
+            // await _supabase.From<PlayerProfile>().Where(x => x.Id == CurrentProfile.Id).Update(CurrentProfile);
+            await _supabase.From<PlayerProfile>().Update(CurrentProfile);
+             
             Debug.Log("Đã đồng bộ tên mới lên Supabase: " + newName);
             return true;
         }
@@ -211,7 +216,8 @@ namespace SimpleFPS
             if (CurrentProfile.RankPoints < 0) CurrentProfile.RankPoints = 0;
 
             // Đẩy lên Database
-            await _supabase.From<PlayerProfile>().Where(x => x.Id == CurrentProfile.Id).Update(CurrentProfile);
+            // await _supabase.From<PlayerProfile>().Where(x => x.Id == CurrentProfile.Id).Update(CurrentProfile);
+            await _supabase.From<PlayerProfile>().Update(CurrentProfile);
             
             Debug.Log($"Trận đấu kết thúc! Vàng +{goldEarned}. Điểm Rank thay đổi: {rankEarned}. Tổng Rank: {CurrentProfile.RankPoints}");
         }
@@ -235,6 +241,71 @@ namespace SimpleFPS
                 Debug.LogError("Lỗi tải Bảng Xếp Hạng: " + e.Message);
                 return new System.Collections.Generic.List<PlayerProfile>();
             }
+        }
+
+
+        // --- HÀM MUA NHÂN VẬT MỚI BẰNG VÀNG ---
+        public async Task<bool> UnlockCharacter(string charId, int cost)
+        {
+            if (!IsLoggedIn) return false;
+
+            // Kiểm tra xem đã sở hữu chưa (tránh mua trùng)
+            if (CurrentProfile.UnlockedCharacters.Contains(charId)) 
+            {
+                Debug.Log("Bạn đã sở hữu nhân vật này rồi!");
+                return true; 
+            }
+
+            // Kiểm tra số dư Vàng
+            if (CurrentProfile.Gold < cost) 
+            {
+                Debug.LogWarning("Không đủ Vàng để mua nhân vật!");
+                return false; 
+            }
+
+            // Trừ tiền và ném nhân vật mới vào tủ đồ
+            CurrentProfile.Gold -= cost;
+            CurrentProfile.UnlockedCharacters += "," + charId; // VD: "Char_Adam,Char_Kelly"
+
+            // Đẩy dữ liệu mới lên Server
+            // await _supabase.From<PlayerProfile>().Where(x => x.Id == CurrentProfile.Id).Update(CurrentProfile);
+            // Xóa dòng cũ:
+            // await _supabase.From<PlayerProfile>().Where(x => x.Id == CurrentProfile.Id).Update(CurrentProfile);
+
+            // Sửa thành:
+            await _supabase.From<PlayerProfile>().Update(CurrentProfile);
+            Debug.Log($"Mở khóa {charId} thành công! Vàng còn lại: {CurrentProfile.Gold}");
+            
+            return true;
+        }
+
+        // --- HÀM CHỌN NHÂN VẬT ĐỂ MANG VÀO TRẬN ---
+        public async Task<bool> EquipCharacter(string charId)
+        {
+            if (!IsLoggedIn) return false;
+
+            // Chặn việc hack/chọn nhân vật chưa mở khóa
+            if (!CurrentProfile.UnlockedCharacters.Contains(charId)) 
+            {
+                Debug.LogError("Lỗi: Bạn chưa mở khóa nhân vật này!");
+                return false;
+            }
+
+            // Đổi nhân vật hiện tại
+            CurrentProfile.CurrentCharacter = charId;
+            
+            // Xóa dòng cũ:
+            // await _supabase.From<PlayerProfile>().Where(x => x.Id == CurrentProfile.Id).Update(CurrentProfile);
+
+            // Sửa thành:
+            await _supabase.From<PlayerProfile>().Update(CurrentProfile);
+            
+            // Lưu vào ổ cứng để lát nữa Fusion đọc và Spawn đúng Prefab 3D
+            PlayerPrefs.SetString("Photon.Menu.Character", charId);
+            PlayerPrefs.Save();
+            
+            Debug.Log("Đã trang bị nhân vật: " + charId);
+            return true;
         }
     }
 }

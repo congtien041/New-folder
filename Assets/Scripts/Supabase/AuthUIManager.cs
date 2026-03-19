@@ -79,8 +79,9 @@ namespace SimpleFPS
             AuthPanel.SetActive(false);
 
             // --- ĐOẠN CODE BÍ MẬT ---
-            // Lưu tên từ DB vào bộ nhớ của Unity để Lát nữa Fusion bật lên nó tự lấy ra dùng
             PlayerPrefs.SetString("Photon.Menu.Username", SupabaseManager.Instance.CurrentProfile.Username);
+            // Thêm dòng này để ghi nhớ nhân vật đang mặc:
+            PlayerPrefs.SetString("Photon.Menu.Character", SupabaseManager.Instance.CurrentProfile.CurrentCharacter);
             PlayerPrefs.Save();
             // ------------------------
 

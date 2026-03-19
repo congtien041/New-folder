@@ -22,5 +22,10 @@ namespace SimpleFPS
 
         [Column("rank_points")]
         public int RankPoints { get; set; }
+        [Column("current_character")]
+        public string CurrentCharacter { get; set; }
+
+        [Column("unlocked_characters")]
+        public string UnlockedCharacters { get; set; }
     }
 }

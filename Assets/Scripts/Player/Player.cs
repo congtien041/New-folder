@@ -36,6 +36,11 @@ namespace SimpleFPS
 		public float         AirAcceleration = 25f;
 		public float         AirDeceleration = 1.3f;
 
+		[Header("Characters")]
+		public GameObject[] CharacterModels; // Kéo thả Char_Adam, Char_Kelly vào đây
+		private string _currentDisplayedChar = "";
+
+
 		[Networked]
 		private NetworkButtons _previousButtons { get; set; }
 		[Networked]
@@ -152,6 +157,25 @@ namespace SimpleFPS
 			}
 
 			_visibleJumpCount = _jumpCount;
+
+
+			// --- CODE TỰ ĐỘNG ĐỔI NHÂN VẬT 3D ---
+			if (_sceneObjects.Gameplay.PlayerData.TryGet(Object.InputAuthority, out var data))
+			{
+				// Nếu Server báo là nhân vật đã đổi
+				if (data.CharacterID != _currentDisplayedChar && !string.IsNullOrEmpty(data.CharacterID))
+				{
+					_currentDisplayedChar = data.CharacterID;
+					
+					// Duyệt qua kho đồ: Ai đúng tên thì bật, sai tên thì tắt
+					foreach (var model in CharacterModels)
+					{
+						model.SetActive(model.name == _currentDisplayedChar);
+					}
+				}
+			}
+
+			
 		}
 
 		private void LateUpdate()
