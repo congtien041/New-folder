@@ -70,6 +70,8 @@ namespace SimpleFPS
 			if (HasInputAuthority == false)
 				return;
 
+				
+
 			// Enter key is used for locking/unlocking cursor in game view.
 			var keyboard = Keyboard.current;
 			if (keyboard != null && (keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame))
@@ -95,6 +97,13 @@ namespace SimpleFPS
 			{
 				var mouseDelta = mouse.delta.ReadValue();
 
+				// --- ĐOẠN CODE CHỐNG LỖI PARRELSYNC KHI TEST 2 MÀN HÌNH ---
+                if (float.IsNaN(mouseDelta.x) || float.IsNaN(mouseDelta.y))
+                {
+                    mouseDelta = Vector2.zero;
+                }
+                // ---------------------------------------------------------
+				
 				var lookRotationDelta = new Vector2(-mouseDelta.y, mouseDelta.x);
 				lookRotationDelta *= LookSensitivity / 60f;
 				_lookRotationAccumulator.Accumulate(lookRotationDelta);
