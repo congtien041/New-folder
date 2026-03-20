@@ -39,6 +39,10 @@ namespace SimpleFPS
 		[Header("Characters")]
 		public GameObject[] CharacterModels; // Kéo thả Char_Adam, Char_Kelly vào đây
 		private string _currentDisplayedChar = "";
+		[Header("Characters")]
+		// public GameObject[] CharacterModels; 
+		public Avatar[] CharacterAvatars; // --- THÊM DÒNG NÀY ĐỂ LƯU AVATAR ---
+		// private string _currentDisplayedChar = "";
 
 
 		[Networked]
@@ -159,18 +163,24 @@ namespace SimpleFPS
 			_visibleJumpCount = _jumpCount;
 
 
-			// --- CODE TỰ ĐỘNG ĐỔI NHÂN VẬT 3D ---
+			// --- CODE TỰ ĐỘNG ĐỔI NHÂN VẬT 3D VÀ AVATAR ---
 			if (_sceneObjects.Gameplay.PlayerData.TryGet(Object.InputAuthority, out var data))
 			{
-				// Nếu Server báo là nhân vật đã đổi
 				if (data.CharacterID != _currentDisplayedChar && !string.IsNullOrEmpty(data.CharacterID))
 				{
 					_currentDisplayedChar = data.CharacterID;
 					
-					// Duyệt qua kho đồ: Ai đúng tên thì bật, sai tên thì tắt
-					foreach (var model in CharacterModels)
+					// Duyệt qua kho đồ
+					for (int i = 0; i < CharacterModels.Length; i++)
 					{
-						model.SetActive(model.name == _currentDisplayedChar);
+                        bool isCurrentCharacter = (CharacterModels[i].name == _currentDisplayedChar);
+						CharacterModels[i].SetActive(isCurrentCharacter);
+
+                        // Nếu đúng là nhân vật đang chọn, thì thay luôn Avatar cho Animator
+                        if (isCurrentCharacter && CharacterAvatars.Length > i && CharacterAvatars[i] != null)
+                        {
+                            Animator.avatar = CharacterAvatars[i];
+                        }
 					}
 				}
 			}
