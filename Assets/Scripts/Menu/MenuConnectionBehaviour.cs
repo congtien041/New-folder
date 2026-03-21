@@ -111,42 +111,46 @@ namespace SimpleFPS
 		}
 
 		public virtual async Task DisconnectAsync(int reason)
-		{
-			var runner = _runner;
-			_runner = null;
+        {
+            var runner = _runner;
+            _runner = null;
 
-			if (runner != null)
-			{
-				Scene sceneToUnload = default;
+            if (runner != null)
+            {
+                Scene sceneToUnload = default;
 
-				if (runner.IsSceneAuthority == true && runner.TryGetSceneInfo(out NetworkSceneInfo sceneInfo) == true)
-				{
-					foreach (var sceneRef in sceneInfo.Scenes)
-					{
-						await runner.UnloadScene(sceneRef);
-					}
-				}
-				else
-				{
-					sceneToUnload = runner.SceneManager.MainRunnerScene;
-				}
+                if (runner.IsSceneAuthority == true && runner.TryGetSceneInfo(out NetworkSceneInfo sceneInfo) == true)
+                {
+                    foreach (var sceneRef in sceneInfo.Scenes)
+                    {
+                        await runner.UnloadScene(sceneRef);
+                    }
+                }
+                // --- BỌC THÉP 1: Kiểm tra xem SceneManager có tồn tại không mới gọi ---
+                else if (runner.SceneManager != null) 
+                {
+                    sceneToUnload = runner.SceneManager.MainRunnerScene;
+                }
 
-				await runner.Shutdown();
+                await runner.Shutdown();
 
-				if (sceneToUnload.IsValid() == true && sceneToUnload.isLoaded == true && sceneToUnload != _connectionBehaviour.gameObject.scene)
-				{
-					SceneManager.SetActiveScene(_connectionBehaviour.gameObject.scene);
-					SceneManager.UnloadSceneAsync(sceneToUnload);
-				}
-			}
+                // --- BỌC THÉP 2: Đảm bảo ConnectionBehaviour chưa bị hủy ---
+                if (sceneToUnload.IsValid() == true && sceneToUnload.isLoaded == true && _connectionBehaviour != null && sceneToUnload != _connectionBehaviour.gameObject.scene)
+                {
+                    SceneManager.SetActiveScene(_connectionBehaviour.gameObject.scene);
+                    SceneManager.UnloadSceneAsync(sceneToUnload);
+                }
+            }
 
-			if (reason != ConnectFailReason.UserRequest)
-			{
-				await _connectionBehaviour.UIController.PopupAsync(reason.ToString(), "Disconnected");
-			}
+            if (reason != ConnectFailReason.UserRequest)
+            {
+                if (_connectionBehaviour != null && _connectionBehaviour.UIController != null)
+                    await _connectionBehaviour.UIController.PopupAsync(reason.ToString(), "Disconnected");
+            }
 
-			_connectionBehaviour.UIController.OnGameStopped();
-		}
+            if (_connectionBehaviour != null && _connectionBehaviour.UIController != null)
+                _connectionBehaviour.UIController.OnGameStopped();
+        }
 
 		private GameMode GetGameMode(IFusionMenuConnectArgs connectionArgs)
 		{
