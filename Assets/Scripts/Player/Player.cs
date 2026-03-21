@@ -37,12 +37,10 @@ namespace SimpleFPS
 		public float         AirDeceleration = 1.3f;
 
 		[Header("Characters")]
-		public GameObject[] CharacterModels; // Kéo thả Char_Adam, Char_Kelly vào đây
+		public GameObject[] CharacterModels; // Kéo thả Char_Adam, Char_Kelly, Inosuke nguyên con vào đây
+		public Avatar[] CharacterAvatars;    // Kéo thả Avatar tương ứng
+		public Transform[] WeaponSockets;    // Kéo thả các Socket vào đây
 		private string _currentDisplayedChar = "";
-		[Header("Characters")]
-		// public GameObject[] CharacterModels; 
-		public Avatar[] CharacterAvatars; // --- THÊM DÒNG NÀY ĐỂ LƯU AVATAR ---
-		// private string _currentDisplayedChar = "";
 
 
 		[Networked]
@@ -163,23 +161,34 @@ namespace SimpleFPS
 			_visibleJumpCount = _jumpCount;
 
 
-			// --- CODE TỰ ĐỘNG ĐỔI NHÂN VẬT 3D VÀ AVATAR ---
+			// --- CODE TỰ ĐỘNG ĐỔI NHÂN VẬT, AVATAR VÀ TRÁO WEAPON HANDLE ---
 			if (_sceneObjects.Gameplay.PlayerData.TryGet(Object.InputAuthority, out var data))
 			{
 				if (data.CharacterID != _currentDisplayedChar && !string.IsNullOrEmpty(data.CharacterID))
 				{
 					_currentDisplayedChar = data.CharacterID;
 					
-					// Duyệt qua kho đồ
 					for (int i = 0; i < CharacterModels.Length; i++)
 					{
-                        bool isCurrentCharacter = (CharacterModels[i].name == _currentDisplayedChar);
-						CharacterModels[i].SetActive(isCurrentCharacter);
+                        bool isCurrentCharacter = (CharacterModels[i] != null && CharacterModels[i].name == _currentDisplayedChar);
+						
+                        if (CharacterModels[i] != null)
+                            CharacterModels[i].SetActive(isCurrentCharacter);
 
-                        // Nếu đúng là nhân vật đang chọn, thì thay luôn Avatar cho Animator
-                        if (isCurrentCharacter && CharacterAvatars.Length > i && CharacterAvatars[i] != null)
+                        if (isCurrentCharacter)
                         {
-                            Animator.avatar = CharacterAvatars[i];
+                            // 1. Thay Avatar
+                            if (CharacterAvatars != null && i < CharacterAvatars.Length && CharacterAvatars[i] != null)
+                            {
+                                Animator.avatar = CharacterAvatars[i];
+                                Animator.Rebind();
+                            }
+
+                            // 2. TUYỆT CHIÊU: Tráo mục tiêu bám của cây súng sang tay nhân vật mới!
+                            if (WeaponSockets != null && i < WeaponSockets.Length && WeaponSockets[i] != null)
+                            {
+                                Weapons.ThirdPersonSetup.WeaponHandle = WeaponSockets[i];
+                            }
                         }
 					}
 				}
