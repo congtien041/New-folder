@@ -32,22 +32,30 @@ namespace SimpleFPS
         public async void OnEquipAdamClick()
         {
             bool success = await SupabaseManager.Instance.EquipCharacter("Char_Adam"); 
-            if (success) Debug.Log("Đã đổi sang Adam!");
+            if (success) 
+            {
+                Debug.Log("Đã đổi sang Adam!");
+                RefreshLobby(); // Gọi hàm làm mới tượng
+            }
         }
 
         public async void OnEquipKellyClick()
         {
-            // Phải bắt lấy kết quả trả về (success) để xem Backend có cho phép không
             bool success = await SupabaseManager.Instance.EquipCharacter("Char_Kelly"); 
-            
             if (success) 
             {
-                Debug.Log("Trang bị Kelly THÀNH CÔNG! Lần sau vào trận sẽ là Kelly.");
+                Debug.Log("Trang bị Kelly THÀNH CÔNG!");
+                RefreshLobby(); // Gọi hàm làm mới tượng
             }
-            else
+        }
+
+        // --- THÊM HÀM NÀY VÀO CUỐI FILE CharacterShopUI.cs ---
+        private void RefreshLobby()
+        {
+            var display = FindObjectOfType<LobbyCharacterDisplay>();
+            if (display != null)
             {
-                // Nếu Backend chặn, in ra thông báo để UI biết đường xử lý
-                Debug.LogError("Trang bị thất bại! Bạn phải Mua nhân vật này trước.");
+                display.UpdateDisplay();
             }
         }
     }

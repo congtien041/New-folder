@@ -152,6 +152,22 @@ namespace SimpleFPS
 			_activeSetup = ThirdPersonSetup;
 		}
 
+		// private void LateUpdate()
+		// {
+		// 	if (Object == null)
+		// 		return; // Not valid
+
+		// 	if (_visibleWeapon != null)
+		// 	{
+		// 		var weaponTransform = _visibleWeapon.transform;
+		// 		var weaponPivot = _firstPersonActive ? _visibleWeapon.FirstPersonPivot : _visibleWeapon.ThirdPersonPivot;
+
+		// 		// Snap visible weapon to weapon handle transform, use weapon pivot to adjust offset and rotation per weapon
+		// 		weaponTransform.rotation = _activeSetup.WeaponHandle.rotation * weaponPivot.localRotation;
+		// 		weaponTransform.position = _activeSetup.WeaponHandle.position + weaponTransform.rotation * weaponPivot.localPosition;
+		// 	}
+		// }
+
 		private void LateUpdate()
 		{
 			if (Object == null)
@@ -162,9 +178,27 @@ namespace SimpleFPS
 				var weaponTransform = _visibleWeapon.transform;
 				var weaponPivot = _firstPersonActive ? _visibleWeapon.FirstPersonPivot : _visibleWeapon.ThirdPersonPivot;
 
-				// Snap visible weapon to weapon handle transform, use weapon pivot to adjust offset and rotation per weapon
-				weaponTransform.rotation = _activeSetup.WeaponHandle.rotation * weaponPivot.localRotation;
-				weaponTransform.position = _activeSetup.WeaponHandle.position + weaponTransform.rotation * weaponPivot.localPosition;
+				// 1. Vẫn giữ súng bám chặt vào vị trí bàn tay (Socket)
+				weaponTransform.position = _activeSetup.WeaponHandle.position + (_activeSetup.WeaponHandle.rotation * weaponPivot.localPosition);
+
+				// 2. TUYỆT CHIÊU "PROCEDURAL AIM": ÉP NÒNG SÚNG CHỈA VÀO TÂM MÀN HÌNH
+				// Lấy một điểm đích cách xa 100m tính từ Camera (Hồng tâm)
+				Vector3 aimTarget = FireTransform.position + FireTransform.forward * 100f;
+				
+				// Kiểm tra xem tia ngắm từ Camera có đang đập vào bức tường/kẻ địch nào gần hơn không
+				LayerMask hitMask = CurrentWeapon != null ? CurrentWeapon.HitMask : ~0;
+				if (Runner.GetPhysicsScene().Raycast(FireTransform.position, FireTransform.forward, out var hit, 100f, hitMask, QueryTriggerInteraction.Ignore))
+				{
+					aimTarget = hit.point; // Cập nhật điểm đích là mặt tường
+				}
+
+				// Ép khẩu súng bẻ góc chĩa thẳng tắp vào điểm đích đó!
+				Vector3 aimDirection = aimTarget - weaponTransform.position;
+				if (aimDirection != Vector3.zero)
+				{
+					Quaternion aimRotation = Quaternion.LookRotation(aimDirection);
+					weaponTransform.rotation = aimRotation * weaponPivot.localRotation;
+				}
 			}
 		}
 

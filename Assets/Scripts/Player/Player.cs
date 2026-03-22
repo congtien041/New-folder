@@ -293,13 +293,26 @@ namespace SimpleFPS
 			CameraHandle.localRotation = Quaternion.Euler(pitchRotation);
 		}
 
+		// private void SetFirstPersonVisuals(bool firstPerson)
+		// {
+		// 	FirstPersonRoot.SetActive(firstPerson);
+		// 	ThirdPersonRoot.SetActive(firstPerson == false);
+
+		// 	Weapons.SetFirstPersonVisuals(firstPerson);
+		// }
+
 		private void SetFirstPersonVisuals(bool firstPerson)
 		{
-			FirstPersonRoot.SetActive(firstPerson);
-			ThirdPersonRoot.SetActive(firstPerson == false);
+			// 1. Tắt vĩnh viễn hệ thống tay lơ lửng
+			if (FirstPersonRoot != null) FirstPersonRoot.SetActive(false);
 
-			Weapons.SetFirstPersonVisuals(firstPerson);
+			// 2. LUÔN LUÔN BẬT thân người 3D (để chính mình cũng nhìn thấy chân tay mình)
+			if (ThirdPersonRoot != null) ThirdPersonRoot.SetActive(true);
+
+			// 3. Ép hệ thống súng đạn dùng chung Setup của thân người 3D
+			if (Weapons != null) Weapons.SetFirstPersonVisuals(false);
 		}
+
 
 		private Vector3 GetAnimationMoveVelocity()
 		{
