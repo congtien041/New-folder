@@ -15,6 +15,13 @@ namespace SimpleFPS
         public TMP_InputField UsernameInput;
         public TextMeshProUGUI MessageText;
 
+        [Header("Giao diện Đổi Pass (OTP)")]
+        public GameObject ResetPassPanel; 
+        public TMP_InputField ResetEmailInput;
+        public TMP_InputField OtpInput;
+        public TMP_InputField NewPasswordInput;
+        public TextMeshProUGUI ResetMessageText;
+
         private void Start()
         {
             // --- ĐOẠN CODE SỬA LỖI ẨN MENU KHI LEAVE GAME ---
@@ -107,6 +114,60 @@ namespace SimpleFPS
             MessageText.text = "Bạn đã đăng xuất an toàn.";
         }
 
+        // SỬA LẠI HÀM NÀY
+        public async void OnForgotPasswordClick()
+        {
+            if (string.IsNullOrEmpty(EmailInput.text))
+            {
+                MessageText.text = "Vui lòng nhập Email vào ô trên để lấy mã!";
+                return;
+            }
+
+            MessageText.text = "Đang gửi mã OTP về email...";
+            bool success = await SupabaseManager.Instance.ResetPassword(EmailInput.text);
+            
+            if (success)
+            {
+                // Tắt bảng Đăng nhập, Bật bảng nhập OTP lên
+                AuthPanel.SetActive(false);
+                ResetPassPanel.SetActive(true);
+                
+                ResetEmailInput.text = EmailInput.text; // Copy sẵn email qua cho rảnh tay
+                ResetMessageText.text = "Hãy kiểm tra Email và nhập mã OTP (8 số) vào đây.";
+            }
+            else
+            {
+                MessageText.text = "Lỗi: Không thể gửi email.";
+            }
+        }
+
+        // THÊM HÀM MỚI NÀY DÀNH CHO NÚT "XÁC NHẬN ĐỔI PASS"
+        public async void OnConfirmOtpClick()
+        {
+            if (string.IsNullOrEmpty(OtpInput.text) || string.IsNullOrEmpty(NewPasswordInput.text))
+            {
+                ResetMessageText.text = "Vui lòng nhập đủ Mã OTP và Mật khẩu mới!";
+                return;
+            }
+
+            ResetMessageText.text = "Đang xác thực và đổi mật khẩu...";
+
+            // Gọi hàm bên SupabaseManager
+            bool success = await SupabaseManager.Instance.VerifyOtpAndChangePassword(ResetEmailInput.text, OtpInput.text, NewPasswordInput.text);
+
+            if (success)
+            {
+                // Đổi thành công -> Trả về màn hình đăng nhập
+                ResetPassPanel.SetActive(false);
+                AuthPanel.SetActive(true);
+                PasswordInput.text = ""; // Xóa trắng ô pass cũ
+                MessageText.text = "✅ Đổi mật khẩu thành công! Vui lòng đăng nhập lại.";
+            }
+            else
+            {
+                ResetMessageText.text = "❌ Lỗi: Mã OTP sai hoặc đã hết hạn!";
+            }
+        }
         
     }
 }

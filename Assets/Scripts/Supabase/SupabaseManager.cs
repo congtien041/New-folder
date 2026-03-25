@@ -307,5 +307,53 @@ namespace SimpleFPS
             Debug.Log("Đã trang bị nhân vật: " + charId);
             return true;
         }
+
+        // --- HÀM QUÊN MẬT KHẨU (GỬI LINK RESET VỀ EMAIL) ---
+        public async Task<bool> ResetPassword(string email)
+        {
+            try
+            {
+                // Gọi lệnh gửi email khôi phục của Supabase
+                await _supabase.Auth.ResetPasswordForEmail(email);
+                Debug.Log("Đã gửi email khôi phục mật khẩu tới: " + email);
+                return true;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Lỗi gửi email reset pass: {e.Message}");
+                return false;
+            }
+        }
+
+        // --- HÀM XÁC NHẬN OTP VÀ ĐỔI MẬT KHẨU TRỰC TIẾP TRONG GAME ---
+        public async Task<bool> VerifyOtpAndChangePassword(string email, string otp, string newPassword)
+        {
+            try
+            {
+                // 1. Gửi OTP lên để xác thực (kèm theo mã ẩn PKCE của Unity)
+                var session = await _supabase.Auth.VerifyOTP(email, otp, Supabase.Gotrue.Constants.EmailOtpType.Recovery);
+
+                if (session != null && session.User != null)
+                {
+                    // 2. OTP chuẩn -> Cập nhật mật khẩu mới luôn
+                    var attrs = new Supabase.Gotrue.UserAttributes { Password = newPassword };
+                    await _supabase.Auth.Update(attrs);
+                    
+                    // Xóa vé cũ để người chơi đăng nhập lại bằng pass mới
+                    PlayerPrefs.DeleteKey("supa_access");
+                    PlayerPrefs.DeleteKey("supa_refresh");
+                    PlayerPrefs.Save();
+
+                    Debug.Log("Đổi pass bằng OTP thành công!");
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("Lỗi xác nhận OTP: " + e.Message);
+                return false;
+            }
+        }
     }
 }
