@@ -5,13 +5,26 @@ using UnityEngine.UI;
 public class RankDisplay : MonoBehaviour {
     public Image RankIcon;
     public TextMeshProUGUI RankPointText;
-    public Sprite[] RankSprites; // Bỏ các hình Bronze, Silver, Gold vào đây theo thứ tự
+    public Sprite[] RankSprites; // 0: Đồng, 1: Bạc, 2: Vàng, 3: Bạch kim, 4: Kim cương, 5: Huyền thoại
 
     public void UpdateRank(int points) {
         RankPointText.text = points.ToString();
-        // 0-1199: Đồng, 1200-1499: Bạc, 1500+: Vàng
-        if (points < 1200) RankIcon.sprite = RankSprites[0];
-        else if (points < 1500) RankIcon.sprite = RankSprites[1];
-        else RankIcon.sprite = RankSprites[2];
+        int rankIndex = GetRankIndex(points);
+
+        if (RankSprites == null || RankSprites.Length <= rankIndex) {
+            Debug.LogWarning($"RankSprites is not configured correctly. Expected at least {rankIndex + 1} sprites.");
+            return;
+        }
+
+        RankIcon.sprite = RankSprites[rankIndex];
+    }
+
+    private int GetRankIndex(int points) {
+        if (points < 1200) return 0;
+        if (points < 1500) return 1;
+        if (points < 1700) return 2;
+        if (points < 1900) return 3;
+        if (points < 2000) return 4;
+        return 5;
     }
 }
