@@ -254,6 +254,31 @@ public void PlayerKilled(PlayerRef killerPlayerRef, PlayerRef victimPlayerRef, E
 
 			Runner.Despawn(player.Object);
 
+            // --- LUẬT MỚI: XỬ LÝ KHI CÓ NGƯỜI OUT TRẬN ---
+            if (State == EGameplayState.Running)
+            {
+                // Đếm số người còn lại trong phòng (đang connect)
+                int activePlayers = 0;
+                foreach (var p in PlayerData)
+                {
+                    if (p.Value.IsConnected) activePlayers++;
+                }
+
+                // Nếu chỉ còn 1 người (1vs1) out 1 còn 1 -> Người còn lại tự động thắng
+                if (activePlayers <= 1)
+                {
+                    StopGameplay();
+                }
+                
+                // Nếu chính mình là người bấm Out / Tắt game -> Lưu kết quả bị phạt
+                if (playerRef == Runner.LocalPlayer)
+                {
+                    // Tính thời gian đã chơi
+                    float playTime = GameDuration - RemainingTime.RemainingTime(Runner).GetValueOrDefault();
+                    _ = SupabaseManager.Instance.UpdateMatchResult(false, playerData.Kills, playerData.Deaths, playTime, true);
+                }
+            }
+
 			RecalculateStatisticPositions();
 		}
 
@@ -339,7 +364,6 @@ public void PlayerKilled(PlayerRef killerPlayerRef, PlayerRef victimPlayerRef, E
 
 		private void StopGameplay()
 		{
-            // (Nếu có sẵn các dòng code cũ ở đầu thì giữ nguyên)
 			RecalculateStatisticPositions();
 			State = EGameplayState.Finished; // Đánh dấu hết trận
 
@@ -363,7 +387,9 @@ public void PlayerKilled(PlayerRef killerPlayerRef, PlayerRef victimPlayerRef, E
                 // Gọi hàm lưu dữ liệu lên Supabase
                 if (SupabaseManager.Instance != null && SupabaseManager.Instance.IsLoggedIn)
                 {
-                    _ = SupabaseManager.Instance.UpdateMatchResult(isWin, myData.Kills, myData.Deaths);
+                    // SỬA LỖI: Tính toán thời gian đã chơi để truyền vào hàm UpdateMatchResult
+                    float playTime = GameDuration - RemainingTime.RemainingTime(Runner).GetValueOrDefault();
+                    _ = SupabaseManager.Instance.UpdateMatchResult(isWin, myData.Kills, myData.Deaths, playTime, false);
                 }
             }
             // ----------------------------------------------

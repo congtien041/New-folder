@@ -22,6 +22,10 @@ namespace SimpleFPS
         public TMP_InputField NewPasswordInput;
         public TextMeshProUGUI ResetMessageText;
 
+        [Header("Thông tin Vàng và Rank")]
+        public TextMeshProUGUI GoldText; // Kéo thả chữ Vàng vào đây
+        public RankDisplay RankDisplayComp; // Kéo thả GameObject chứa script RankDisplay vào đây
+
         private void Start()
         {
             // --- ĐOẠN CODE SỬA LỖI ẨN MENU KHI LEAVE GAME ---
@@ -80,19 +84,25 @@ namespace SimpleFPS
         }
 
         // Hàm này được gọi khi login bằng tay thành công hoặc auto login thành công
+        // Hàm này được gọi khi login bằng tay thành công hoặc auto login thành công
         public void OnAutoLoginSuccess()
         {
             MessageText.text = "Đăng nhập thành công!";
             AuthPanel.SetActive(false);
 
-            // --- ĐOẠN CODE BÍ MẬT ---
             PlayerPrefs.SetString("Photon.Menu.Username", SupabaseManager.Instance.CurrentProfile.Username);
-            // Thêm dòng này để ghi nhớ nhân vật đang mặc:
             PlayerPrefs.SetString("Photon.Menu.Character", SupabaseManager.Instance.CurrentProfile.CurrentCharacter);
             PlayerPrefs.Save();
-            // ------------------------
 
             FusionMenuPanel.SetActive(true);
+
+            // --- CẬP NHẬT GIAO DIỆN VÀNG VÀ RANK ---
+            var profile = SupabaseManager.Instance.CurrentProfile;
+            if (profile != null)
+            {
+                if (GoldText != null) GoldText.text = profile.Gold.ToString();
+                if (RankDisplayComp != null) RankDisplayComp.UpdateRank(profile.RankPoints);
+            }
         }
 
         // HÀM GẮN VÀO NÚT ĐĂNG XUẤT TRÊN MENU

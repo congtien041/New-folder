@@ -197,29 +197,39 @@ namespace SimpleFPS
         }
 
         // --- 1. HÀM TÍNH TOÁN VÀ LƯU KẾT QUẢ KHI HẾT TRẬN ---
-        public async Task UpdateMatchResult(bool isWin, int kills, int deaths)
+        public async Task UpdateMatchResult(bool isWin, int kills, int deaths, float playTime, bool isQuit = false)
         {
             if (!IsLoggedIn) return;
 
-            // Tính Vàng
-            int goldEarned = kills * 10;
-            
-            // Tính Rank
-            int matchPoint = isWin ? 20 : -30; // Thắng được 20, Thua bị trừ 30
-            int rankEarned = matchPoint + (kills * 10) - (deaths * 2);
+            try {
+                // Nếu Quit thì không được Vàng. Thắng +50 Vàng, Kill +10 Vàng
+                int goldEarned = isQuit ? 0 : (kills * 10 + (isWin ? 50 : 0));
+                
+                // Quit phạt -20 điểm. Thắng +25, Thua -15. Kill +2 điểm
+                int rankChange = isQuit ? -20 : (isWin ? 25 : -15) + (kills * 2);
 
-            // Cộng vào Profile
-            CurrentProfile.Gold += goldEarned;
-            CurrentProfile.RankPoints += rankEarned;
+                CurrentProfile.Gold += goldEarned;
+                CurrentProfile.RankPoints = Mathf.Max(0, CurrentProfile.RankPoints + rankChange); // Đảm bảo Rank không bị âm
 
-            // Không để điểm Rank bị âm (Noob nhất cũng là 0 điểm)
-            if (CurrentProfile.RankPoints < 0) CurrentProfile.RankPoints = 0;
+                // 1. Cập nhật Profile
+                await _supabase.From<PlayerProfile>().Update(CurrentProfile);
 
-            // Đẩy lên Database
-            // await _supabase.From<PlayerProfile>().Where(x => x.Id == CurrentProfile.Id).Update(CurrentProfile);
-            await _supabase.From<PlayerProfile>().Update(CurrentProfile);
-            
-            Debug.Log($"Trận đấu kết thúc! Vàng +{goldEarned}. Điểm Rank thay đổi: {rankEarned}. Tổng Rank: {CurrentProfile.RankPoints}");
+                // 2. CHỮA LỖI: Sử dụng Class Model thay vì object ẩn danh
+                var history = new MatchHistoryModel {
+                    UserId = CurrentProfile.Id,
+                    Kills = kills,
+                    Deaths = deaths,
+                    PlayTimeSeconds = playTime,
+                    Result = isQuit ? "Quit" : (isWin ? "Win" : "Loss")
+                };
+                
+                // Gọi Insert theo kiểu định dạng chuẩn của C#
+                await _supabase.From<MatchHistoryModel>().Insert(history);
+
+                Debug.Log($"Kết quả: {(isQuit ? "Bỏ cuộc" : "Xong trận")}. Rank: {rankChange}, Vàng: {goldEarned}");
+            } catch (Exception e) {
+                Debug.LogError($"Lỗi lưu kết quả: {e.Message}");
+            }
         }
 
         // --- 2. HÀM LẤY DỮ LIỆU BẢNG XẾP HẠNG (TOP 10) ---
