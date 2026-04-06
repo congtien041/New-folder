@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using Supabase;
 using Client = Supabase.Client;
+using System.Collections.Generic;
 
 namespace SimpleFPS
 {
@@ -363,6 +364,26 @@ namespace SimpleFPS
             {
                 Debug.LogError("Lỗi xác nhận OTP: " + e.Message);
                 return false;
+            }
+        }
+
+        // --- HÀM TẢI LỊCH SỬ ĐẤU CỦA CÁ NHÂN ---
+        public async Task<List<MatchHistoryModel>> GetMyMatchHistory()
+        {
+            if (!IsLoggedIn) return new List<MatchHistoryModel>();
+
+            try {
+                // Lấy danh sách trận đấu của đúng User ID này, sắp xếp cái mới nhất lên đầu
+                var result = await _supabase.From<MatchHistoryModel>()
+                    .Where(x => x.UserId == CurrentProfile.Id)
+                    .Order(x => x.Id, Postgrest.Constants.Ordering.Descending) 
+                    .Limit(10) // Lấy 10 trận gần nhất cho nhẹ máy
+                    .Get();
+
+                return result.Models;
+            } catch (Exception e) {
+                Debug.LogError($"Lỗi tải lịch sử: {e.Message}");
+                return new List<MatchHistoryModel>();
             }
         }
     }
