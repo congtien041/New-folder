@@ -1,173 +1,310 @@
 using UnityEngine;
-using TMPro; 
+using TMPro;
 
-namespace SimpleFPS 
+namespace SimpleFPS
 {
     public class AuthUIManager : MonoBehaviour
     {
         [Header("Giao diện")]
-        public GameObject AuthPanel;         
-        public GameObject FusionMenuPanel;   
-
-        [Header("Ô nhập liệu")]
-        public TMP_InputField EmailInput;
-        public TMP_InputField PasswordInput;
-        public TMP_InputField UsernameInput;
+        public CanvasGroupController AuthCanvasGroupController;
+        public CanvasGroupController FusionMenuCanvasGroupController;
+        public RectTransform panel;
+        public float panelLoginHeight;
+        public float panelRegisterHeight;
         public TextMeshProUGUI MessageText;
 
-        [Header("Giao diện Đổi Pass (OTP)")]
-        public GameObject ResetPassPanel; 
+        [Header("Ô nhập liệu Register")]
+        public TMP_InputField RegisterEmailInput;
+        public TMP_InputField RegisterUsernameInput;
+        public TMP_InputField RegisterPasswordInput;
+        public TMP_InputField RegisterConfirmPasswordInput;
+
+        [Header("Ô nhập liệu Login")]
+        public TMP_InputField LoginEmailInput;
+        public TMP_InputField LoginPasswordInput;
+
+        [Header("References")]
+        public FusionMenuSupabaseSync fusionSync;
+
+        [Header("Password Reset (OTP)")]
+        public CanvasGroupController ResetPassCanvasGroupController;
         public TMP_InputField ResetEmailInput;
         public TMP_InputField OtpInput;
         public TMP_InputField NewPasswordInput;
         public TextMeshProUGUI ResetMessageText;
 
+        [Header("Thông tin Vàng và Rank")]
+        public TextMeshProUGUI GoldText;
+
         private void Start()
         {
-            // --- ĐOẠN CODE SỬA LỖI ẨN MENU KHI LEAVE GAME ---
-            // Kiểm tra xem SupabaseManager đã có sẵn và đang đăng nhập chưa
+            MessageText.text = "";
+            
+            // Check if already logged in (e.g., returning from match)
             if (SupabaseManager.Instance != null && SupabaseManager.Instance.IsLoggedIn)
             {
-                // Nếu đã đăng nhập rồi (từ trong trận thoát ra) -> Bật thẳng Menu Fusion
-                AuthPanel.SetActive(false);
-                FusionMenuPanel.SetActive(true);
-                MessageText.text = "";
+                AuthCanvasGroupController.HideCanvasGroup();
+                FusionMenuCanvasGroupController.ShowCanvasGroup();
             }
-            else
-            {
-                // Nếu chưa đăng nhập (mới mở game lên) -> Hiện bảng Đăng nhập
-                AuthPanel.SetActive(true);
-                FusionMenuPanel.SetActive(false);
-                MessageText.text = "";
-            }
+        }
+
+        public void TogglePanelHeight(bool showLogin)
+        {
+            float targetHeight = showLogin ? panelLoginHeight : panelRegisterHeight;
+            panel.sizeDelta = new Vector2(panel.sizeDelta.x, targetHeight);
+
+            // Clear messages when switching panels
+            MessageText.text = "";
         }
 
         public async void OnLoginClick()
         {
-            MessageText.text = "Đang kết nối server...";
-            
-            bool success = await SupabaseManager.Instance.Login(EmailInput.text, PasswordInput.text);
-            
-            if (success)
+            // Validate inputs
+            if (string.IsNullOrEmpty(LoginEmailInput.text))
             {
-                OnAutoLoginSuccess();
+                MessageText.text = "Please enter an email!";
+                return;
             }
-            else
+
+            if (string.IsNullOrEmpty(LoginPasswordInput.text))
             {
-                MessageText.text = "Sai tài khoản, hoặc máy này không khớp với tài khoản!";
+                MessageText.text = "Please enter a password!";
+                return;
+            }
+
+            // Check if SupabaseManager exists
+            if (SupabaseManager.Instance == null)
+            {
+                MessageText.text = "System error: SupabaseManager not found!";
+                return;
+            }
+
+            Debug.Log("Attempting login with Email: " + LoginEmailInput.text);
+
+            MessageText.text = "Connecting to server...";
+
+            try
+            {
+                bool success = await SupabaseManager.Instance.Login(LoginEmailInput.text, LoginPasswordInput.text);
+
+                if (success)
+                {
+                    OnAutoLoginSuccess();
+                }
+                else
+                {
+                    MessageText.text = "Invalid email or password, or device mismatch!";
+                }
+            }
+            catch (System.Exception ex)
+            {
+                MessageText.text = "Connection error!";
+                Debug.LogError($"Login error: {ex.Message}");
             }
         }
 
         public async void OnRegisterClick()
         {
-            if (string.IsNullOrEmpty(UsernameInput.text))
+            if (string.IsNullOrEmpty(RegisterEmailInput.text))
             {
-                MessageText.text = "Vui lòng nhập tên nhân vật!";
+                MessageText.text = "Please enter an email!";
                 return;
             }
 
-            MessageText.text = "Đang tạo tài khoản...";
-            bool success = await SupabaseManager.Instance.Register(EmailInput.text, PasswordInput.text, UsernameInput.text);
-            
-            if (success)
+            if (string.IsNullOrEmpty(RegisterUsernameInput.text))
             {
-                MessageText.text = "Đăng ký thành công! Hãy bấm Đăng Nhập.";
+                MessageText.text = "Please enter a username!";
+                return;
             }
-            else
+
+            if (string.IsNullOrEmpty(RegisterPasswordInput.text))
             {
-                MessageText.text = "Lỗi đăng ký (Email đã tồn tại hoặc mật khẩu quá ngắn).";
+                MessageText.text = "Please enter a password!";
+                return;
+            }
+
+            if (RegisterPasswordInput.text != RegisterConfirmPasswordInput.text)
+            {
+                MessageText.text = "Password confirmation does not match!";
+                return;
+            }
+
+            // Check if SupabaseManager exists
+            if (SupabaseManager.Instance == null)
+            {
+                MessageText.text = "Fatal System error";
+                Debug.LogError("SupabaseManager instance not found in the scene!");
+                return;
+            }
+
+            MessageText.text = "Creating account...";
+
+            Debug.Log("Username: " + RegisterUsernameInput.text + " | Email: " + RegisterEmailInput.text);
+
+            try
+            {
+                bool success = await SupabaseManager.Instance.Register(RegisterEmailInput.text, RegisterPasswordInput.text, RegisterUsernameInput.text);
+
+                if (success)
+                {
+                    MessageText.text = "Registration successful! Please click Login.";
+
+                    // Clear sensitive password fields
+                    RegisterPasswordInput.text = "";
+                    RegisterConfirmPasswordInput.text = "";
+                }
+                else
+                {
+                    MessageText.text = "Registration error (Email already exists or password too short).";
+                }
+            }
+            catch (System.Exception ex)
+            {
+                MessageText.text = "Connection error!";
+                Debug.LogError($"Registration error: {ex.Message}");
             }
         }
 
-        // Hàm này được gọi khi login bằng tay thành công hoặc auto login thành công
+        // Called when manual login or auto login succeeds
         public void OnAutoLoginSuccess()
         {
-            MessageText.text = "Đăng nhập thành công!";
-            AuthPanel.SetActive(false);
+            // Check if SupabaseManager and CurrentProfile exist
+            if (SupabaseManager.Instance == null || SupabaseManager.Instance.CurrentProfile == null)
+            {
+                MessageText.text = "Error: Profile data not loaded!";
+                Debug.LogError("Cannot load user profile - SupabaseManager or CurrentProfile is null");
+                return;
+            }
 
-            // --- ĐOẠN CODE BÍ MẬT ---
+            MessageText.text = "Login successful!";
+
+            AuthCanvasGroupController.HideCanvasGroup();
+
+            // --- Save username and character to PlayerPrefs ---
             PlayerPrefs.SetString("Photon.Menu.Username", SupabaseManager.Instance.CurrentProfile.Username);
-            // Thêm dòng này để ghi nhớ nhân vật đang mặc:
             PlayerPrefs.SetString("Photon.Menu.Character", SupabaseManager.Instance.CurrentProfile.CurrentCharacter);
             PlayerPrefs.Save();
-            // ------------------------
+            // --------------------------------------------------
 
-            FusionMenuPanel.SetActive(true);
+            FusionMenuCanvasGroupController.ShowCanvasGroup();
+
+            // Force sync username with Fusion menu after login
+            if (fusionSync != null)
+            {
+                fusionSync.SyncUsernameFromSupabase();
+            }
+            var profile = SupabaseManager.Instance.CurrentProfile;
+            // Giả sử bạn có 1 cái Text riêng cho Vàng và RankDisplay cho Rank
+            GoldText.text = profile.Gold.ToString(); 
+            GetComponentInChildren<RankDisplay>().UpdateRank(profile.RankPoints);
         }
 
-        // HÀM GẮN VÀO NÚT ĐĂNG XUẤT TRÊN MENU
+        // Logout button handler
         public void OnLogoutClick()
         {
-            // 1. Gọi lệnh xóa tài khoản
+            // 1. Call sign out
             if (SupabaseManager.Instance != null)
             {
                 SupabaseManager.Instance.SignOut();
             }
 
-            // 2. Giấu Menu Fusion đi, bật lại bảng AuthPanel
-            FusionMenuPanel.SetActive(false);
-            AuthPanel.SetActive(true);
-            
-            // 3. Xóa trắng các ô chữ và hiện thông báo
-            EmailInput.text = "";
-            PasswordInput.text = "";
-            MessageText.text = "Bạn đã đăng xuất an toàn.";
+            // 2. Hide Fusion menu, show Auth panel
+            FusionMenuCanvasGroupController.HideCanvasGroup();
+            AuthCanvasGroupController.ShowCanvasGroup();
+
+            // 3. Clear input fields and show message
+            LoginEmailInput.text = "";
+            LoginPasswordInput.text = "";
+            MessageText.text = "You have safely logged out.";
         }
 
-        // SỬA LẠI HÀM NÀY
+        // ==================== PASSWORD RESET FEATURE ====================
+
         public async void OnForgotPasswordClick()
         {
-            if (string.IsNullOrEmpty(EmailInput.text))
+            if (string.IsNullOrEmpty(LoginEmailInput.text))
             {
-                MessageText.text = "Vui lòng nhập Email vào ô trên để lấy mã!";
+                MessageText.text = "Please enter your email above to receive reset code!";
                 return;
             }
 
-            MessageText.text = "Đang gửi mã OTP về email...";
-            bool success = await SupabaseManager.Instance.ResetPassword(EmailInput.text);
-            
-            if (success)
+            MessageText.text = "Sending OTP to email...";
+
+            try
             {
-                // Tắt bảng Đăng nhập, Bật bảng nhập OTP lên
-                AuthPanel.SetActive(false);
-                ResetPassPanel.SetActive(true);
-                
-                ResetEmailInput.text = EmailInput.text; // Copy sẵn email qua cho rảnh tay
-                ResetMessageText.text = "Hãy kiểm tra Email và nhập mã OTP (8 số) vào đây.";
+                bool success = await SupabaseManager.Instance.ResetPassword(LoginEmailInput.text);
+
+                if (success)
+                {
+                    // Hide Auth panel, show Reset panel
+                    AuthCanvasGroupController.HideCanvasGroup();
+                    ResetPassCanvasGroupController.ShowCanvasGroup();
+
+                    ResetEmailInput.text = LoginEmailInput.text; // Copy email over
+                    ResetMessageText.text = "Check your email and enter the OTP code (8 digits) here.";
+                }
+                else
+                {
+                    MessageText.text = "Error: Unable to send email.";
+                }
             }
-            else
+            catch (System.Exception ex)
             {
-                MessageText.text = "Lỗi: Không thể gửi email.";
+                MessageText.text = "Connection error!";
+                Debug.LogError($"Reset password error: {ex.Message}");
             }
         }
 
-        // THÊM HÀM MỚI NÀY DÀNH CHO NÚT "XÁC NHẬN ĐỔI PASS"
         public async void OnConfirmOtpClick()
         {
             if (string.IsNullOrEmpty(OtpInput.text) || string.IsNullOrEmpty(NewPasswordInput.text))
             {
-                ResetMessageText.text = "Vui lòng nhập đủ Mã OTP và Mật khẩu mới!";
+                ResetMessageText.text = "Please enter both OTP code and new password!";
                 return;
             }
 
-            ResetMessageText.text = "Đang xác thực và đổi mật khẩu...";
+            ResetMessageText.text = "Verifying and changing password...";
 
-            // Gọi hàm bên SupabaseManager
-            bool success = await SupabaseManager.Instance.VerifyOtpAndChangePassword(ResetEmailInput.text, OtpInput.text, NewPasswordInput.text);
-
-            if (success)
+            try
             {
-                // Đổi thành công -> Trả về màn hình đăng nhập
-                ResetPassPanel.SetActive(false);
-                AuthPanel.SetActive(true);
-                PasswordInput.text = ""; // Xóa trắng ô pass cũ
-                MessageText.text = "✅ Đổi mật khẩu thành công! Vui lòng đăng nhập lại.";
+                bool success = await SupabaseManager.Instance.VerifyOtpAndChangePassword(
+                    ResetEmailInput.text, 
+                    OtpInput.text, 
+                    NewPasswordInput.text
+                );
+
+                if (success)
+                {
+                    // Success - return to login screen
+                    ResetPassCanvasGroupController.HideCanvasGroup();
+                    AuthCanvasGroupController.ShowCanvasGroup();
+
+                    LoginPasswordInput.text = ""; // Clear old password field
+                    OtpInput.text = "";
+                    NewPasswordInput.text = "";
+                    MessageText.text = "✅ Password changed successfully! Please log in again.";
+                }
+                else
+                {
+                    ResetMessageText.text = "❌ Error: Invalid or expired OTP code!";
+                }
             }
-            else
+            catch (System.Exception ex)
             {
-                ResetMessageText.text = "❌ Lỗi: Mã OTP sai hoặc đã hết hạn!";
+                ResetMessageText.text = "Connection error!";
+                Debug.LogError($"OTP verification error: {ex.Message}");
             }
         }
-        
+
+        public void OnCancelResetClick()
+        {
+            // Cancel button to go back to login
+            ResetPassCanvasGroupController.HideCanvasGroup();
+            AuthCanvasGroupController.ShowCanvasGroup();
+            
+            OtpInput.text = "";
+            NewPasswordInput.text = "";
+            ResetMessageText.text = "";
+        }
     }
 }

@@ -8,6 +8,7 @@ namespace SimpleFPS
         {
             // Khởi tạo Supabase client
             var client = new Supabase.Client("https://ebdytrnnavfvgjkjysqr.supabase.co", "sb_publishable_0ONS0ziLjfkpkL96Bt-kHg_pBcgw_aB");
+            await client.InitializeAsync();
             Debug.Log("Đã kết nối đến Supabase!");
         }
     }

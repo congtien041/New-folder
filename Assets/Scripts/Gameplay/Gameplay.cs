@@ -44,6 +44,7 @@ namespace SimpleFPS
 	{
 		public GameUI GameUI;
 		public Player PlayerPrefab;
+		private float _matchStartTime;
 		public float  GameDuration = 180f;
 		public float  PlayerRespawnTime = 5f;
 		public float  DoubleDamageDuration = 30f;
@@ -242,6 +243,17 @@ public void PlayerKilled(PlayerRef killerPlayerRef, PlayerRef victimPlayerRef, E
 		{
 			if (PlayerData.TryGet(playerRef, out var playerData) == true)
 			{
+				if (State == EGameplayState.Running && PlayerData.Count <= 2)
+				{
+					// Nếu là 1vs1 mà đối thủ out -> Mình thắng mặc định
+					StopGameplay(); 
+				}
+				
+				// Nếu chính mình là người out (IsLocal) -> Xử lý phạt trong hàm Shutdown hoặc RPC
+				if (playerRef == Runner.LocalPlayer && State == EGameplayState.Running)
+				{
+					_ = SupabaseManager.Instance.UpdateMatchResult(false, 0, 0, Time.time - _matchStartTime, true);
+				}
 				if (playerData.IsConnected == true)
 				{
 					Debug.LogWarning($"{playerRef} disconnected.");
@@ -315,6 +327,7 @@ public void PlayerKilled(PlayerRef killerPlayerRef, PlayerRef victimPlayerRef, E
 
 		private void StartGameplay()
 		{
+			_matchStartTime = Time.time; // Ghi lại lúc bắt đầu
 			// Stop all respawn coroutines.
 			StopAllCoroutines();
 
@@ -360,10 +373,13 @@ public void PlayerKilled(PlayerRef killerPlayerRef, PlayerRef victimPlayerRef, E
                     if (myData.StatisticPosition == 1) isWin = true;
                 }
 
-                // Gọi hàm lưu dữ liệu lên Supabase
+                // Tính thời gian đã chơi (Tổng thời gian trừ đi thời gian còn lại)
+                float playTime = GameDuration - RemainingTime.RemainingTime(Runner).GetValueOrDefault();
+
+                // Gọi hàm lưu dữ liệu lên Supabase (Thêm biến playTime vào)
                 if (SupabaseManager.Instance != null && SupabaseManager.Instance.IsLoggedIn)
                 {
-                    _ = SupabaseManager.Instance.UpdateMatchResult(isWin, myData.Kills, myData.Deaths);
+                    _ = SupabaseManager.Instance.UpdateMatchResult(isWin, myData.Kills, myData.Deaths, playTime);
                 }
             }
             // ----------------------------------------------
