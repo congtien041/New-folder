@@ -12,8 +12,8 @@ namespace SimpleFPS
         public static SupabaseManager Instance;
 
         [Header("Supabase Config")]
-        public string SupabaseUrl = "https://ebdytrnnavfvgjkjysqr.supabase.co";
-        public string SupabaseAnonKey = "sb_publishable_0ONS0ziLjfkpkL96Bt-kHg_pBcgw_aB";
+        private string SupabaseUrl = "https://ebdytrnnavfvgjkjysqr.supabase.co";
+        private string SupabaseAnonKey = "sb_publishable_0ONS0ziLjfkpkL96Bt-kHg_pBcgw_aB";
 
         private Client _supabase;
         
