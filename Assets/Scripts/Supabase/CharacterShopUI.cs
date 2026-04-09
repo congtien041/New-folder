@@ -1,61 +1,97 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace SimpleFPS
 {
     public class CharacterShopUI : MonoBehaviour
     {
-        // ==========================================
-        // PHẦN 1: MUA NHÂN VẬT (UNLOCK)
-        // ==========================================
-        
-        public async void OnBuyKellyClick()
+        // BẢNG GIÁ NHÂN VẬT: Sau này muốn thêm n nhân vật, bạn CHỈ CẦN thêm 1 dòng vào đây
+        private Dictionary<string, int> CharacterPrices = new Dictionary<string, int>()
         {
-            // Để test nhanh, mình set giá mua Kelly là 0 Vàng. (Vì acc của bạn đang có 0 Vàng)
-            // Sau này muốn bán Kelly giá 500 Vàng thì đổi số 0 thành 500 nhé!
-            bool success = await SupabaseManager.Instance.UnlockCharacter("Char_Kelly", 99); 
+            { "Char_Adam", 0 },
+            { "Char_Kelly", 99 },
+            { "Char_FF", 99 },
+            { "Char_Goku", 500 },     // Ví dụ thêm Goku giá 500
+            { "Char_Batman", 1000 }   // Ví dụ thêm Batman giá 1000
+        };
+
+        // ==========================================
+        // PHẦN 1: MUA NHÂN VẬT (Dùng chung cho N nhân vật)
+        // ==========================================
+        public async void BuyCharacter(string characterId)
+        {
+            // Kiểm tra xem nhân vật có trong bảng giá không
+            if (!CharacterPrices.ContainsKey(characterId))
+            {
+                Debug.LogError("Nhân vật " + characterId + " chưa được cài đặt giá!");
+                return;
+            }
+
+            int price = CharacterPrices[characterId];
+            
+            // Gọi Supabase mua với đúng tên và giá đó
+            bool success = await SupabaseManager.Instance.UnlockCharacter(characterId, price); 
             
             if (success)
             {
-                Debug.Log("Mua Kelly THÀNH CÔNG! Bây giờ bạn có thể trang bị.");
+                Debug.Log($"Mua {characterId} THÀNH CÔNG! Bây giờ bạn có thể trang bị.");
             }
             else
             {
-                Debug.LogWarning("Mua thất bại (Không đủ vàng hoặc đã có sẵn).");
+                Debug.LogWarning($"Mua {characterId} thất bại (Không đủ vàng hoặc đã có sẵn).");
             }
         }
-
 
         // ==========================================
-        // PHẦN 2: TRANG BỊ NHÂN VẬT (EQUIP)
+        // PHẦN 2: TRANG BỊ NHÂN VẬT (Dùng chung cho N nhân vật)
         // ==========================================
-
-        public async void OnEquipAdamClick()
+        
+        public async void EquipCharacter(string characterId)
         {
-            bool success = await SupabaseManager.Instance.EquipCharacter("Char_Adam"); 
+            Debug.Log($"[1] Bấm nút Trang Bị. Đang gửi yêu cầu đổi sang: '{characterId}'...");
+
+            bool success = await SupabaseManager.Instance.EquipCharacter(characterId); 
+            
             if (success) 
             {
-                Debug.Log("Đã đổi sang Adam!");
-                RefreshLobby(); // Gọi hàm làm mới tượng
-            }
-        }
+                Debug.Log("[2] Server Supabase báo thành công! Đang lưu vào PlayerPrefs...");
+                
+                PlayerPrefs.SetString("Photon.Menu.Character", characterId);
+                PlayerPrefs.Save();
 
-        public async void OnEquipKellyClick()
-        {
-            bool success = await SupabaseManager.Instance.EquipCharacter("Char_Kelly"); 
-            if (success) 
+                Debug.Log("[3] Đã lưu xong! Tiến hành gọi RefreshLobby()...");
+                RefreshLobby(); 
+            }
+            else
             {
-                Debug.Log("Trang bị Kelly THÀNH CÔNG!");
-                RefreshLobby(); // Gọi hàm làm mới tượng
+                Debug.LogError($"[LỖI] Server từ chối! (Có thể bạn chưa mua {characterId} hoặc lỗi mạng)");
             }
         }
-
-        // --- THÊM HÀM NÀY VÀO CUỐI FILE CharacterShopUI.cs ---
+        // ==========================================
+        // HÀM HỖ TRỢ
+        // ==========================================
+        // ==========================================
+        // HÀM HỖ TRỢ
+        // ==========================================
         private void RefreshLobby()
         {
-            var display = FindObjectOfType<LobbyCharacterDisplay>();
-            if (display != null)
+            // Tìm TẤT CẢ các script LobbyCharacterDisplay đang có mặt trong màn hình (kể cả đang bị ẩn)
+            var allDisplays = FindObjectsOfType<LobbyCharacterDisplay>(true);
+            
+            bool isUpdated = false;
+            foreach (var display in allDisplays)
             {
-                display.UpdateDisplay();
+                // Chỉ update những script có chứa tượng bên trong (né mấy cái script rỗng lỗi)
+                if (display.LobbyModels != null && display.LobbyModels.Length > 0)
+                {
+                    display.UpdateDisplay();
+                    isUpdated = true;
+                }
+            }
+
+            if (!isUpdated)
+            {
+                Debug.LogError("[SHOP] Không tìm thấy Sảnh nào có chứa tượng để update cả!");
             }
         }
     }

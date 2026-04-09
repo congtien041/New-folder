@@ -9,23 +9,40 @@ namespace SimpleFPS
 
         private void OnEnable()
         {
-            // Mỗi khi bật Menu lên, tự động cập nhật tượng
             UpdateDisplay();
         }
 
         public void UpdateDisplay()
         {
-            // Đọc tên nhân vật đang trang bị (Mặc định là Char_Adam nếu chưa có)
             string equippedChar = PlayerPrefs.GetString("Photon.Menu.Character", "Char_Adam");
+            Debug.Log($"[LOBBY] Bắt đầu quét Sảnh... Tên nhân vật đang tìm: '{equippedChar}'");
 
-            // Bật/tắt tượng
+            bool foundTarget = false;
+
             foreach (var model in LobbyModels)
             {
                 if (model != null)
                 {
-                    // Tên tượng phải đặt khớp 100% với tên nhân vật (vd: Char_Adam)
-                    model.SetActive(model.name == equippedChar);
+                    // Kiểm tra xem tên vật thể có khớp 100% với tên đã lưu không
+                    bool isMatch = (model.name == equippedChar);
+                    model.SetActive(isMatch);
+                    
+                    if (isMatch)
+                    {
+                        foundTarget = true;
+                        Debug.Log($"[LOBBY] ---> TÌM THẤY VÀ ĐÃ BẬT TƯỢNG: {model.name}");
+                    }
+                    else
+                    {
+                        Debug.Log($"[LOBBY] Đã tắt tượng: {model.name}");
+                    }
                 }
+            }
+
+            // Nếu quét hết cả mảng mà không có ai trùng tên
+            if (!foundTarget)
+            {
+                Debug.LogWarning($"[LOBBY CẢNH BÁO] Ôi hỏng! Không có bức tượng nào mang tên chính xác là '{equippedChar}' cả. Bạn ra Inspector kiểm tra lại xem có bị dư dấu cách (Space) không nhé!");
             }
         }
     }
