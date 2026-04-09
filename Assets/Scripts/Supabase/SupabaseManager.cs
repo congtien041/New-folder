@@ -198,39 +198,61 @@ namespace SimpleFPS
         }
 
         // --- 1. HÀM TÍNH TOÁN VÀ LƯU KẾT QUẢ KHI HẾT TRẬN ---
-        public async Task UpdateMatchResult(bool isWin, int kills, int deaths, float playTime, bool isQuit = false)
+        // public async Task UpdateMatchResult(bool isWin, int kills, int deaths, float playTime, bool isQuit = false)
+        // {
+        //     if (!IsLoggedIn) return;
+
+        //     try {
+        //         // Nếu Quit thì không được Vàng. Thắng +50 Vàng, Kill +10 Vàng
+        //         int goldEarned = isQuit ? 0 : (kills * 10 + (isWin ? 50 : 0));
+                
+        //         // Quit phạt -20 điểm. Thắng +25, Thua -15. Kill +2 điểm
+        //         int rankChange = isQuit ? -20 : (isWin ? 25 : -15) + (kills * 2);
+
+        //         CurrentProfile.Gold += goldEarned;
+        //         CurrentProfile.RankPoints = Mathf.Max(0, CurrentProfile.RankPoints + rankChange); // Đảm bảo Rank không bị âm
+
+        //         // 1. Cập nhật Profile
+        //         await _supabase.From<PlayerProfile>().Update(CurrentProfile);
+
+        //         // 2. CHỮA LỖI: Sử dụng Class Model thay vì object ẩn danh
+        //         var history = new MatchHistoryModel {
+        //             UserId = CurrentProfile.Id,
+        //             Kills = kills,
+        //             Deaths = deaths,
+        //             PlayTimeSeconds = playTime,
+        //             Result = isQuit ? "Quit" : (isWin ? "Win" : "Loss")
+        //         };
+                
+        //         // Gọi Insert theo kiểu định dạng chuẩn của C#
+        //         await _supabase.From<MatchHistoryModel>().Insert(history);
+
+        //         Debug.Log($"Kết quả: {(isQuit ? "Bỏ cuộc" : "Xong trận")}. Rank: {rankChange}, Vàng: {goldEarned}");
+        //     } catch (Exception e) {
+        //         Debug.LogError($"Lỗi lưu kết quả: {e.Message}");
+        //     }
+        // }
+
+        public async Task UpdateMatchResult(bool isWin, int kills, int deaths, float playTime, string opponentName, bool isQuit = false)
         {
             if (!IsLoggedIn) return;
-
             try {
-                // Nếu Quit thì không được Vàng. Thắng +50 Vàng, Kill +10 Vàng
                 int goldEarned = isQuit ? 0 : (kills * 10 + (isWin ? 50 : 0));
-                
-                // Quit phạt -20 điểm. Thắng +25, Thua -15. Kill +2 điểm
                 int rankChange = isQuit ? -20 : (isWin ? 25 : -15) + (kills * 2);
 
                 CurrentProfile.Gold += goldEarned;
-                CurrentProfile.RankPoints = Mathf.Max(0, CurrentProfile.RankPoints + rankChange); // Đảm bảo Rank không bị âm
-
-                // 1. Cập nhật Profile
+                CurrentProfile.RankPoints = Mathf.Max(0, CurrentProfile.RankPoints + rankChange);
                 await _supabase.From<PlayerProfile>().Update(CurrentProfile);
 
-                // 2. CHỮA LỖI: Sử dụng Class Model thay vì object ẩn danh
                 var history = new MatchHistoryModel {
                     UserId = CurrentProfile.Id,
-                    Kills = kills,
-                    Deaths = deaths,
+                    Kills = kills, Deaths = deaths,
                     PlayTimeSeconds = playTime,
-                    Result = isQuit ? "Quit" : (isWin ? "Win" : "Loss")
+                    Result = isQuit ? "Quit" : (isWin ? "Win" : "Loss"),
+                    OpponentName = opponentName // LƯU TÊN ĐỐI THỦ
                 };
-                
-                // Gọi Insert theo kiểu định dạng chuẩn của C#
                 await _supabase.From<MatchHistoryModel>().Insert(history);
-
-                Debug.Log($"Kết quả: {(isQuit ? "Bỏ cuộc" : "Xong trận")}. Rank: {rankChange}, Vàng: {goldEarned}");
-            } catch (Exception e) {
-                Debug.LogError($"Lỗi lưu kết quả: {e.Message}");
-            }
+            } catch (Exception e) { Debug.LogError("Lỗi: " + e.Message); }
         }
 
         // --- 2. HÀM LẤY DỮ LIỆU BẢNG XẾP HẠNG (TOP 10) ---

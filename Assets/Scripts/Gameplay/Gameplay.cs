@@ -254,30 +254,43 @@ public void PlayerKilled(PlayerRef killerPlayerRef, PlayerRef victimPlayerRef, E
 
 			Runner.Despawn(player.Object);
 
-            // --- LUẬT MỚI: XỬ LÝ KHI CÓ NGƯỜI OUT TRẬN ---
-            if (State == EGameplayState.Running)
-            {
-                // Đếm số người còn lại trong phòng (đang connect)
-                int activePlayers = 0;
-                foreach (var p in PlayerData)
-                {
-                    if (p.Value.IsConnected) activePlayers++;
-                }
+			// --- LUẬT MỚI: XỬ LÝ KHI CÓ NGƯỜI OUT TRẬN ---
+			if (State == EGameplayState.Running)
+			{
+				// Đếm số người còn lại trong phòng (đang connect)
+				int activePlayers = 0;
+				foreach (var p in PlayerData)
+				{
+					if (p.Value.IsConnected) activePlayers++;
+				}
 
-                // Nếu chỉ còn 1 người (1vs1) out 1 còn 1 -> Người còn lại tự động thắng
-                if (activePlayers <= 1)
-                {
-                    StopGameplay();
-                }
-                
-                // Nếu chính mình là người bấm Out / Tắt game -> Lưu kết quả bị phạt
-                if (playerRef == Runner.LocalPlayer)
-                {
-                    // Tính thời gian đã chơi
-                    float playTime = GameDuration - RemainingTime.RemainingTime(Runner).GetValueOrDefault();
-                    _ = SupabaseManager.Instance.UpdateMatchResult(false, playerData.Kills, playerData.Deaths, playTime, true);
-                }
-            }
+				// Nếu chỉ còn 1 người (1vs1) out 1 còn 1 -> Người còn lại tự động thắng
+				if (activePlayers <= 1)
+				{
+					StopGameplay();
+				}
+				
+				// Nếu chính mình là người bấm Out / Tắt game -> Lưu kết quả bị phạt
+				if (playerRef == Runner.LocalPlayer)
+				{
+					// TÌM TÊN ĐỐI THỦ
+					string enemyName = "Unknown";
+					foreach (var p in PlayerData)
+					{
+						if (p.Key != Runner.LocalPlayer)
+						{
+							enemyName = p.Value.Nickname;
+							break;
+						}
+					}
+
+					// Tính thời gian đã chơi
+					float playTime = GameDuration - RemainingTime.RemainingTime(Runner).GetValueOrDefault();
+					
+					// Gửi thêm enemyName vào hàm (isQuit = true)
+					_ = SupabaseManager.Instance.UpdateMatchResult(false, playerData.Kills, playerData.Deaths, playTime, enemyName, true);
+				}
+			}
 
 			RecalculateStatisticPositions();
 		}
@@ -367,32 +380,45 @@ public void PlayerKilled(PlayerRef killerPlayerRef, PlayerRef victimPlayerRef, E
 			RecalculateStatisticPositions();
 			State = EGameplayState.Finished; // Đánh dấu hết trận
 
-            // --- CODE MỚI: TÍNH THẮNG THUA VÀ LƯU RANK ---
-            if (PlayerData.TryGet(Runner.LocalPlayer, out var myData))
-            {
-                bool isWin = false;
-                
-                if (IsTeamMode)
-                {
-                    // Chế độ 2v2: Đội mình có điểm cao hơn đội kia thì là Thắng
-                    if (myData.Team == 1 && Team1Score > Team2Score) isWin = true;
-                    else if (myData.Team == 2 && Team2Score > Team1Score) isWin = true;
-                }
-                else
-                {
-                    // Chế độ Bắn Tự Do (FFA): Đứng Top 1 trên bảng điểm thì là Thắng
-                    if (myData.StatisticPosition == 1) isWin = true;
-                }
+			// --- CODE MỚI: TÍNH THẮNG THUA VÀ LƯU RANK ---
+			if (PlayerData.TryGet(Runner.LocalPlayer, out var myData))
+			{
+				bool isWin = false;
+				
+				if (IsTeamMode)
+				{
+					// Chế độ 2v2: Đội mình có điểm cao hơn đội kia thì là Thắng
+					if (myData.Team == 1 && Team1Score > Team2Score) isWin = true;
+					else if (myData.Team == 2 && Team2Score > Team1Score) isWin = true;
+				}
+				else
+				{
+					// Chế độ Bắn Tự Do (FFA): Đứng Top 1 trên bảng điểm thì là Thắng
+					if (myData.StatisticPosition == 1) isWin = true;
+				}
 
-                // Gọi hàm lưu dữ liệu lên Supabase
-                if (SupabaseManager.Instance != null && SupabaseManager.Instance.IsLoggedIn)
-                {
-                    // SỬA LỖI: Tính toán thời gian đã chơi để truyền vào hàm UpdateMatchResult
-                    float playTime = GameDuration - RemainingTime.RemainingTime(Runner).GetValueOrDefault();
-                    _ = SupabaseManager.Instance.UpdateMatchResult(isWin, myData.Kills, myData.Deaths, playTime, false);
-                }
-            }
-            // ----------------------------------------------
+				// Gọi hàm lưu dữ liệu lên Supabase
+				if (SupabaseManager.Instance != null && SupabaseManager.Instance.IsLoggedIn)
+				{
+					// 1. TÌM TÊN ĐỐI THỦ
+					string enemyName = "Unknown";
+					foreach (var p in PlayerData)
+					{
+						if (p.Key != Runner.LocalPlayer)
+						{
+							enemyName = p.Value.Nickname;
+							break;
+						}
+					}
+
+					// 2. Tính toán thời gian đã chơi
+					float playTime = GameDuration - RemainingTime.RemainingTime(Runner).GetValueOrDefault();
+					
+					// 3. Gửi thêm enemyName vào hàm
+					_ = SupabaseManager.Instance.UpdateMatchResult(isWin, myData.Kills, myData.Deaths, playTime, enemyName, false);
+				}
+			}
+			// ----------------------------------------------
 		}
 		private void RecalculateStatisticPositions()
 		{

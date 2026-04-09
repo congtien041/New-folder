@@ -24,5 +24,8 @@ namespace SimpleFPS
 
         [Column("result")]
         public string Result { get; set; }
+        
+        [Column("opponent_name")]
+        public string OpponentName { get; set; }
     }
 }

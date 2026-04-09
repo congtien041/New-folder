@@ -36,7 +36,8 @@ namespace SimpleFPS
                 int minutes = (int)match.PlayTimeSeconds / 60;
                 int seconds = (int)match.PlayTimeSeconds % 60;
 
-                textComp.text = $"{resultColor} | K/D: {match.Kills}/{match.Deaths} | Time: {minutes:00}:{seconds:00}";
+                // textComp.text = $"{resultColor} | K/D: {match.Kills}/{match.Deaths} | Time: {minutes:00}:{seconds:00}";
+                textComp.text = $"{resultColor} vs {match.OpponentName} | K/D: {match.Kills}/{match.Deaths} | Time: {minutes:00}:{seconds:00}";
             }
         }
 
