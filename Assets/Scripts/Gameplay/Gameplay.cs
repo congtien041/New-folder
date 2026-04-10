@@ -273,22 +273,32 @@ public void PlayerKilled(PlayerRef killerPlayerRef, PlayerRef victimPlayerRef, E
 				// Nếu chính mình là người bấm Out / Tắt game -> Lưu kết quả bị phạt
 				if (playerRef == Runner.LocalPlayer)
 				{
-					// TÌM TÊN ĐỐI THỦ
-					string enemyName = "Unknown";
-					foreach (var p in PlayerData)
-					{
-						if (p.Key != Runner.LocalPlayer)
-						{
-							enemyName = p.Value.Nickname;
-							break;
-						}
-					}
-
-					// Tính thời gian đã chơi
-					float playTime = GameDuration - RemainingTime.RemainingTime(Runner).GetValueOrDefault();
+					// KIỂM TRA TƯƠNG TỰ
+					bool isRanked = Runner.SessionInfo.IsVisible;
 					
-					// Gửi thêm enemyName vào hàm (isQuit = true)
-					_ = SupabaseManager.Instance.UpdateMatchResult(false, playerData.Kills, playerData.Deaths, playTime, enemyName, true);
+					if (isRanked)
+					{
+						// TÌM TÊN ĐỐI THỦ
+						string enemyName = "Unknown";
+						foreach (var p in PlayerData)
+						{
+							if (p.Key != Runner.LocalPlayer)
+							{
+								enemyName = p.Value.Nickname;
+								break;
+							}
+						}
+
+						// Tính thời gian đã chơi
+						float playTime = GameDuration - RemainingTime.RemainingTime(Runner).GetValueOrDefault();
+						
+						// Gửi thêm enemyName vào hàm (isQuit = true)
+						_ = SupabaseManager.Instance.UpdateMatchResult(false, playerData.Kills, playerData.Deaths, playTime, enemyName, true);
+					}
+					else
+					{
+						Debug.Log("Thoát Phòng Giao Lưu: An toàn, không bị phạt!");
+					}
 				}
 			}
 
@@ -397,25 +407,38 @@ public void PlayerKilled(PlayerRef killerPlayerRef, PlayerRef victimPlayerRef, E
 					if (myData.StatisticPosition == 1) isWin = true;
 				}
 
-				// Gọi hàm lưu dữ liệu lên Supabase
+				// KIỂM TRA PHÒNG RANK HAY GIAO LƯU
+				// Nếu phòng bị ẩn (IsVisible = false) => Đây là phòng tạo bằng Code (Giao Lưu)
+				bool isRanked = Runner.SessionInfo.IsVisible; 
+
 				if (SupabaseManager.Instance != null && SupabaseManager.Instance.IsLoggedIn)
 				{
-					// 1. TÌM TÊN ĐỐI THỦ
-					string enemyName = "Unknown";
-					foreach (var p in PlayerData)
-					{
-						if (p.Key != Runner.LocalPlayer)
-						{
-							enemyName = p.Value.Nickname;
-							break;
-						}
-					}
-
-					// 2. Tính toán thời gian đã chơi
-					float playTime = GameDuration - RemainingTime.RemainingTime(Runner).GetValueOrDefault();
+					// ... (code lấy enemyName và playTime như cũ) ...
 					
-					// 3. Gửi thêm enemyName vào hàm
-					_ = SupabaseManager.Instance.UpdateMatchResult(isWin, myData.Kills, myData.Deaths, playTime, enemyName, false);
+					// Nếu là Rank thì lưu kết quả, nếu Giao Lưu thì KHÔNG GỌI HÀM LƯU (hoặc tạo hàm lưu riêng không cộng trừ điểm)
+					if (isRanked) 
+					{
+						// 1. TÌM TÊN ĐỐI THỦ
+						string enemyName = "Unknown";
+						foreach (var p in PlayerData)
+						{
+							if (p.Key != Runner.LocalPlayer)
+							{
+								enemyName = p.Value.Nickname;
+								break;
+							}
+						}
+
+						// 2. Tính toán thời gian đã chơi
+						float playTime = GameDuration - RemainingTime.RemainingTime(Runner).GetValueOrDefault();
+						
+						// 3. Gửi thêm enemyName vào hàm
+						_ = SupabaseManager.Instance.UpdateMatchResult(isWin, myData.Kills, myData.Deaths, playTime, enemyName, false);
+					}
+					else 
+					{
+						Debug.Log("Phòng Giao Lưu: Không tính Rank và Vàng!");
+					}
 				}
 			}
 			// ----------------------------------------------

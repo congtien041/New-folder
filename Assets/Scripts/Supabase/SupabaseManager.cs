@@ -197,41 +197,6 @@ namespace SimpleFPS
             }
         }
 
-        // --- 1. HÀM TÍNH TOÁN VÀ LƯU KẾT QUẢ KHI HẾT TRẬN ---
-        // public async Task UpdateMatchResult(bool isWin, int kills, int deaths, float playTime, bool isQuit = false)
-        // {
-        //     if (!IsLoggedIn) return;
-
-        //     try {
-        //         // Nếu Quit thì không được Vàng. Thắng +50 Vàng, Kill +10 Vàng
-        //         int goldEarned = isQuit ? 0 : (kills * 10 + (isWin ? 50 : 0));
-                
-        //         // Quit phạt -20 điểm. Thắng +25, Thua -15. Kill +2 điểm
-        //         int rankChange = isQuit ? -20 : (isWin ? 25 : -15) + (kills * 2);
-
-        //         CurrentProfile.Gold += goldEarned;
-        //         CurrentProfile.RankPoints = Mathf.Max(0, CurrentProfile.RankPoints + rankChange); // Đảm bảo Rank không bị âm
-
-        //         // 1. Cập nhật Profile
-        //         await _supabase.From<PlayerProfile>().Update(CurrentProfile);
-
-        //         // 2. CHỮA LỖI: Sử dụng Class Model thay vì object ẩn danh
-        //         var history = new MatchHistoryModel {
-        //             UserId = CurrentProfile.Id,
-        //             Kills = kills,
-        //             Deaths = deaths,
-        //             PlayTimeSeconds = playTime,
-        //             Result = isQuit ? "Quit" : (isWin ? "Win" : "Loss")
-        //         };
-                
-        //         // Gọi Insert theo kiểu định dạng chuẩn của C#
-        //         await _supabase.From<MatchHistoryModel>().Insert(history);
-
-        //         Debug.Log($"Kết quả: {(isQuit ? "Bỏ cuộc" : "Xong trận")}. Rank: {rankChange}, Vàng: {goldEarned}");
-        //     } catch (Exception e) {
-        //         Debug.LogError($"Lỗi lưu kết quả: {e.Message}");
-        //     }
-        // }
 
         public async Task UpdateMatchResult(bool isWin, int kills, int deaths, float playTime, string opponentName, bool isQuit = false)
         {
@@ -406,6 +371,40 @@ namespace SimpleFPS
             } catch (Exception e) {
                 Debug.LogError($"Lỗi tải lịch sử: {e.Message}");
                 return new List<MatchHistoryModel>();
+            }
+        }
+
+        // ==========================================
+        // TÍNH NĂNG CHAT THẾ GIỚI (WORLD CHAT)
+        // ==========================================
+        // Hàm này sẽ được gọi khi người chơi gửi tin nhắn trong UI, nó sẽ tạo một bản ghi mới trong bảng global_chat của Supabase
+        public async Task SendGlobalChat(string message)
+        {
+            if (!IsLoggedIn) return;
+            try {
+                var chatMsg = new GlobalChatModel { 
+                    SenderName = CurrentProfile.Username, 
+                    Message = message 
+                };
+                await _supabase.From<GlobalChatModel>().Insert(chatMsg);
+            } catch (Exception e) {
+                Debug.LogError("Lỗi gửi tin nhắn: " + e.Message);
+            }
+        }
+
+            // Hàm này sẽ được gọi mỗi 5 giây để lấy những tin nhắn mới từ Server, dựa vào ID của tin nhắn cuối cùng đã có trong UI
+        public async Task<List<GlobalChatModel>> GetNewGlobalChats(int lastMessageId)
+        {
+            if (!IsLoggedIn) return new List<GlobalChatModel>();
+            try {
+                var result = await _supabase.From<GlobalChatModel>()
+                    .Where(x => x.Id > lastMessageId)
+                    .Order(x => x.Id, Postgrest.Constants.Ordering.Ascending)
+                    .Limit(50) // Mỗi lần tải tối đa 50 tin nhắn mới
+                    .Get();
+                return result.Models;
+            } catch {
+                return new List<GlobalChatModel>();
             }
         }
     }
