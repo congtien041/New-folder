@@ -25,10 +25,9 @@ namespace SimpleFPS
         [Header("Thông tin Vàng và Rank")]
         public TextMeshProUGUI GoldText; // Kéo thả chữ Vàng vào đây
         public RankDisplay RankDisplayComp; // Kéo thả GameObject chứa script RankDisplay vào đây
-
+        
         private void Start()
         {
-            // --- ĐOẠN CODE SỬA LỖI ẨN MENU KHI LEAVE GAME ---
             // Kiểm tra xem SupabaseManager đã có sẵn và đang đăng nhập chưa
             if (SupabaseManager.Instance != null && SupabaseManager.Instance.IsLoggedIn)
             {
@@ -36,6 +35,15 @@ namespace SimpleFPS
                 AuthPanel.SetActive(false);
                 FusionMenuPanel.SetActive(true);
                 MessageText.text = "";
+
+                // --- BỔ SUNG: ÉP GIAO DIỆN CẬP NHẬT LẠI SỐ VÀNG VÀ RANK ---
+                var profile = SupabaseManager.Instance.CurrentProfile;
+                if (profile != null)
+                {
+                    if (GoldText != null) GoldText.text = profile.Gold.ToString();
+                    if (RankDisplayComp != null) RankDisplayComp.UpdateRank(profile.RankPoints);
+                    Debug.Log("[MENU] Đã load lại Vàng và Rank từ RAM!");
+                }
             }
             else
             {

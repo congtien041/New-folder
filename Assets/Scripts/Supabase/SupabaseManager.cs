@@ -33,6 +33,19 @@ namespace SimpleFPS
             _supabase = new Client(SupabaseUrl, SupabaseAnonKey, options);
             await _supabase.InitializeAsync();
 
+
+            // Kiểm tra xem đã có Instance nào tồn tại chưa (tránh trường hợp có 2 thằng SupabaseManager trong 1 scene nào đó do nhầm lẫn)
+            if (Instance != null && Instance != this)
+            {
+                Destroy(this.gameObject); // Nếu đã có 1 thằng tồn tại, tự sát ngay thằng mới!
+                return;
+            }
+
+            Instance = this;
+            DontDestroyOnLoad(this.gameObject);
+
+
+
             // Thử tự động đăng nhập khi mở game
             await AutoLoginAsync();
         }
@@ -217,6 +230,21 @@ namespace SimpleFPS
                     OpponentName = opponentName // LƯU TÊN ĐỐI THỦ
                 };
                 await _supabase.From<MatchHistoryModel>().Insert(history);
+            } catch (Exception e) { Debug.LogError("Lỗi: " + e.Message); }
+        }
+
+        public async Task UpdateZombieMatchResult(int zombieKills, bool isTop1)
+        {
+            if (!IsLoggedIn) return;
+            try {
+                int goldEarned = zombieKills;
+                int rankChange = isTop1 ? 10 : 0;
+
+                CurrentProfile.Gold += goldEarned;
+                CurrentProfile.RankPoints = Mathf.Max(0, CurrentProfile.RankPoints + rankChange);
+                await _supabase.From<PlayerProfile>().Update(CurrentProfile);
+
+                Debug.Log($"[ZOMBIE MODE] Nhận {goldEarned} Vàng, +{rankChange} Rank");
             } catch (Exception e) { Debug.LogError("Lỗi: " + e.Message); }
         }
 

@@ -50,7 +50,8 @@ namespace SimpleFPS
 
 		// --- CÔNG TẮC CHẾ ĐỘ CHƠI ---
 		[Header("Game Mode Settings")]
-		public bool IsTeamMode = false;		
+		public bool IsTeamMode = false;
+		public bool IsZombieMode = false; // THÊM DÒNG NÀY ĐỂ BẬT TẮT CHẾ ĐỘ ZOMBIE
 		[Networked] public int Team1Score { get; set; }
 		[Networked] public int Team2Score { get; set; }
 		public int TargetScoreToWin = 20; // Đội nào giết 20 mạng trước sẽ thắng
@@ -71,63 +72,94 @@ namespace SimpleFPS
 		private List<PlayerData> _tempPlayerData = new(16);
 		private List<Transform> _recentSpawnPoints = new(4);
 
-public void PlayerKilled(PlayerRef killerPlayerRef, PlayerRef victimPlayerRef, EWeaponType weaponType, bool isCriticalKill)
-		{
-			if (HasStateAuthority == false) return;
+		public void PlayerKilled(PlayerRef killerPlayerRef, PlayerRef victimPlayerRef, EWeaponType weaponType, bool isCriticalKill)
+        {
+            if (HasStateAuthority == false) return;
 
-			if (PlayerData.TryGet(killerPlayerRef, out PlayerData killerData) &&
-			    PlayerData.TryGet(victimPlayerRef, out PlayerData victimData))
-			{
-				if (IsTeamMode)
-				{
-					// LÀM GAME ĐẤU ĐỘI (2v2)
-					if (killerData.Team != victimData.Team)
-					{
-						killerData.Kills++;
-						killerData.LastKillTick = Runner.Tick;
-						PlayerData.Set(killerPlayerRef, killerData);
+            // KIỂM TRA PHÂN LOẠI: Ai là Người, Ai là Quái?
+            bool isKillerPlayer = PlayerData.TryGet(killerPlayerRef, out PlayerData killerData);
+            bool isVictimPlayer = PlayerData.TryGet(victimPlayerRef, out PlayerData victimData);
 
-						if (killerData.Team == 1) Team1Score++;
-						else if (killerData.Team == 2) Team2Score++;
+            // =========================================
+            // 1. XỬ LÝ NGƯỜI GIẾT (CỘNG ĐIỂM KILLS)
+            // =========================================
+            if (isKillerPlayer)
+            {
+                if (IsZombieMode)
+                {
+                    // [CHẾ ĐỘ ZOMBIE]: Giết quái được cộng mạng (1 mạng = 1 Vàng lúc hết trận)
+                    if (!isVictimPlayer) 
+                    {
+                        killerData.Kills++;
+                        killerData.LastKillTick = Runner.Tick;
+                        PlayerData.Set(killerPlayerRef, killerData);
+                    }
+                }
+                else if (isVictimPlayer) 
+                {
+                    // [CHẾ ĐỘ PVP BÌNH THƯỜNG]: Chỉ cộng điểm khi Người giết Người
+                    if (IsTeamMode)
+                    {
+                        // ĐẤU ĐỘI (2v2)
+                        if (killerData.Team != victimData.Team)
+                        {
+                            killerData.Kills++;
+                            killerData.LastKillTick = Runner.Tick;
+                            PlayerData.Set(killerPlayerRef, killerData);
 
-						if (Team1Score >= TargetScoreToWin || Team2Score >= TargetScoreToWin)
-						{
-							StopGameplay(); 
-                            return; 
-						}
-					}
-				}
-				else
-				{
-					// LÀM GAME BẮN TỰ DO (FFA)
-					killerData.Kills++;
-					killerData.LastKillTick = Runner.Tick;
-					PlayerData.Set(killerPlayerRef, killerData);
+                            if (killerData.Team == 1) Team1Score++;
+                            else if (killerData.Team == 2) Team2Score++;
 
-					// Ai đạt đủ số mạng yêu cầu trước người đó thắng
-					if (killerData.Kills >= TargetScoreToWin)
-					{
-						StopGameplay(); 
-                        return;
-					}
-				}
-			}
+                            if (Team1Score >= TargetScoreToWin || Team2Score >= TargetScoreToWin)
+                            {
+                                StopGameplay(); 
+                                return; 
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // BẮN TỰ DO (FFA)
+                        killerData.Kills++;
+                        killerData.LastKillTick = Runner.Tick;
+                        PlayerData.Set(killerPlayerRef, killerData);
 
-			// Cập nhật trạng thái và số lần chết của nạn nhân
-			var victimPlayerData = PlayerData.Get(victimPlayerRef);
-			victimPlayerData.Deaths++;
-			victimPlayerData.IsAlive = false;
-			PlayerData.Set(victimPlayerRef, victimPlayerData);
+                        if (killerData.Kills >= TargetScoreToWin)
+                        {
+                            StopGameplay(); 
+                            return;
+                        }
+                    }
+                }
+            }
 
-			// Gửi thông báo Kill Feed (Góc trên bên phải màn hình) cho tất cả người chơi
-			RPC_PlayerKilled(killerPlayerRef, victimPlayerRef, weaponType, isCriticalKill);
+            // =========================================
+            // 2. XỬ LÝ NẠN NHÂN (BỊ TRỪ ĐIỂM & HỒI SINH)
+            // =========================================
+            if (isVictimPlayer)
+            {
+                // NẾU NẠN NHÂN LÀ CON NGƯỜI -> Tính lượt chết, hiện thông báo và cho hồi sinh
+                victimData.Deaths++;
+                victimData.IsAlive = false;
+                PlayerData.Set(victimPlayerRef, victimData);
 
-            // Bắt đầu đếm ngược hồi sinh nạn nhân
-			StartCoroutine(RespawnPlayer(victimPlayerRef, PlayerRespawnTime));
+                // Gửi thông báo Kill Feed (Góc trên bên phải)
+                RPC_PlayerKilled(killerPlayerRef, victimPlayerRef, weaponType, isCriticalKill);
 
-            // Sắp xếp lại thứ hạng trên Bảng điểm (Scoreboard)
-			RecalculateStatisticPositions();
-		}
+                // Bắt đầu đếm ngược hồi sinh nạn nhân
+                StartCoroutine(RespawnPlayer(victimPlayerRef, PlayerRespawnTime));
+            }
+            else if (IsZombieMode)
+            {
+                // NẾU NẠN NHÂN LÀ ZOMBIE -> Không làm gì cả (Chỉ in ra Console cho vui)
+                Debug.Log("💀 [ZOMBIE MODE] Một con Zombie vừa bị tiễn về chầu trời!");
+            }
+
+            // =========================================
+            // 3. CẬP NHẬT LẠI BẢNG XẾP HẠNG (TAB)
+            // =========================================
+            RecalculateStatisticPositions();
+        }
 		public override void Spawned()
 		{
 			if (Runner.Mode == SimulationModes.Server)
@@ -393,51 +425,56 @@ public void PlayerKilled(PlayerRef killerPlayerRef, PlayerRef victimPlayerRef, E
 			// --- CODE MỚI: TÍNH THẮNG THUA VÀ LƯU RANK ---
 			if (PlayerData.TryGet(Runner.LocalPlayer, out var myData))
 			{
-				bool isWin = false;
-				
-				if (IsTeamMode)
+				if (IsZombieMode)
 				{
-					// Chế độ 2v2: Đội mình có điểm cao hơn đội kia thì là Thắng
-					if (myData.Team == 1 && Team1Score > Team2Score) isWin = true;
-					else if (myData.Team == 2 && Team2Score > Team1Score) isWin = true;
+					bool isTop1 = (myData.StatisticPosition == 1);
+					int zombieKills = myData.Kills;
+
+					if (SupabaseManager.Instance != null && SupabaseManager.Instance.IsLoggedIn)
+					{
+						_ = SupabaseManager.Instance.UpdateZombieMatchResult(zombieKills, isTop1);
+					}
 				}
 				else
 				{
-					// Chế độ Bắn Tự Do (FFA): Đứng Top 1 trên bảng điểm thì là Thắng
-					if (myData.StatisticPosition == 1) isWin = true;
-				}
-
-				// KIỂM TRA PHÒNG RANK HAY GIAO LƯU
-				// Nếu phòng bị ẩn (IsVisible = false) => Đây là phòng tạo bằng Code (Giao Lưu)
-				bool isRanked = Runner.SessionInfo.IsVisible; 
-
-				if (SupabaseManager.Instance != null && SupabaseManager.Instance.IsLoggedIn)
-				{
-					// ... (code lấy enemyName và playTime như cũ) ...
-					
-					// Nếu là Rank thì lưu kết quả, nếu Giao Lưu thì KHÔNG GỌI HÀM LƯU (hoặc tạo hàm lưu riêng không cộng trừ điểm)
-					if (isRanked) 
+					bool isWin = false;
+				
+					if (IsTeamMode)
 					{
-						// 1. TÌM TÊN ĐỐI THỦ
-						string enemyName = "Unknown";
-						foreach (var p in PlayerData)
-						{
-							if (p.Key != Runner.LocalPlayer)
-							{
-								enemyName = p.Value.Nickname;
-								break;
-							}
-						}
-
-						// 2. Tính toán thời gian đã chơi
-						float playTime = GameDuration - RemainingTime.RemainingTime(Runner).GetValueOrDefault();
-						
-						// 3. Gửi thêm enemyName vào hàm
-						_ = SupabaseManager.Instance.UpdateMatchResult(isWin, myData.Kills, myData.Deaths, playTime, enemyName, false);
+						// Chế độ 2v2: Đội mình có điểm cao hơn đội kia thì là Thắng
+						if (myData.Team == 1 && Team1Score > Team2Score) isWin = true;
+						else if (myData.Team == 2 && Team2Score > Team1Score) isWin = true;
 					}
-					else 
+					else
 					{
-						Debug.Log("Phòng Giao Lưu: Không tính Rank và Vàng!");
+						// Chế độ Bắn Tự Do (FFA): Đứng Top 1 trên bảng điểm thì là Thắng
+						if (myData.StatisticPosition == 1) isWin = true;
+					}
+
+					bool isRanked = Runner.SessionInfo.IsVisible;
+
+					if (SupabaseManager.Instance != null && SupabaseManager.Instance.IsLoggedIn)
+					{
+						if (isRanked)
+						{
+							string enemyName = "Unknown";
+							foreach (var p in PlayerData)
+							{
+								if (p.Key != Runner.LocalPlayer)
+								{
+									enemyName = p.Value.Nickname;
+									break;
+								}
+							}
+
+							float playTime = GameDuration - RemainingTime.RemainingTime(Runner).GetValueOrDefault();
+							
+							_ = SupabaseManager.Instance.UpdateMatchResult(isWin, myData.Kills, myData.Deaths, playTime, enemyName, false);
+						}
+						else
+						{
+							Debug.Log("Phòng Giao Lưu: Không tính Rank và Vàng!");
+						}
 					}
 				}
 			}

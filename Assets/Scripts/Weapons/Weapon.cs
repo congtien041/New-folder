@@ -308,13 +308,19 @@ namespace SimpleFPS
             if (enemyHealth == null || enemyHealth.IsAlive == false)
                 return;
 
-            // KIỂM TRA XEM CÓ ĐANG CHƠI CHẾ ĐỘ TEAM KHÔNG
-            if (_sceneObjects.Gameplay.IsTeamMode)
+            // --- LUẬT MỚI: KIỂM TRA CHẾ ĐỘ CHƠI ---
+            if (_sceneObjects.Gameplay.IsZombieMode)
             {
+                // Nếu là Zombie Mode, cấm bắn tất cả các đối tượng có gắn script Player (Chỉ được bắn Zombie)
+                if (enemyHealth.GetComponent<Player>() != null) return;
+            }
+            else if (_sceneObjects.Gameplay.IsTeamMode)
+            {
+                // Luật cũ của Team Mode
                 if (_sceneObjects.Gameplay.PlayerData.TryGet(Object.InputAuthority, out var myData) &&
                     _sceneObjects.Gameplay.PlayerData.TryGet(enemyHealth.Object.InputAuthority, out var enemyData))
                 {
-                    if (myData.Team == enemyData.Team) return; // Chặn sát thương đồng đội
+                    if (myData.Team == enemyData.Team) return; 
                 }
             }
 
