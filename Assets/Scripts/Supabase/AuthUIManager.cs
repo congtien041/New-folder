@@ -25,10 +25,11 @@ namespace SimpleFPS
         [Header("Thông tin Vàng và Rank")]
         public TextMeshProUGUI GoldText; // Kéo thả chữ Vàng vào đây
         public RankDisplay RankDisplayComp; // Kéo thả GameObject chứa script RankDisplay vào đây
+        public TextMeshProUGUI UsernameText; // <--- THÊM DÒNG NÀY (Nhớ kéo thả Object tên vào đây ở Inspector)
+
 
         private void Start()
         {
-            // --- ĐOẠN CODE SỬA LỖI ẨN MENU KHI LEAVE GAME ---
             // Kiểm tra xem SupabaseManager đã có sẵn và đang đăng nhập chưa
             if (SupabaseManager.Instance != null && SupabaseManager.Instance.IsLoggedIn)
             {
@@ -36,6 +37,16 @@ namespace SimpleFPS
                 AuthPanel.SetActive(false);
                 FusionMenuPanel.SetActive(true);
                 MessageText.text = "";
+                RefreshProfileUI();
+
+                // --- BỔ SUNG: ÉP GIAO DIỆN CẬP NHẬT LẠI SỐ VÀNG VÀ RANK ---
+                var profile = SupabaseManager.Instance.CurrentProfile;
+                if (profile != null)
+                {
+                    if (GoldText != null) GoldText.text = profile.Gold.ToString();
+                    if (RankDisplayComp != null) RankDisplayComp.UpdateRank(profile.RankPoints);
+                    Debug.Log("[MENU] Đã load lại Vàng và Rank từ RAM!");
+                }
             }
             else
             {
@@ -108,17 +119,25 @@ namespace SimpleFPS
         // HÀM GẮN VÀO NÚT ĐĂNG XUẤT TRÊN MENU
         public void OnLogoutClick()
         {
-            // 1. Gọi lệnh xóa tài khoản
             if (SupabaseManager.Instance != null)
             {
                 SupabaseManager.Instance.SignOut();
             }
 
-            // 2. Giấu Menu Fusion đi, bật lại bảng AuthPanel
+
+            if (UsernameText != null) UsernameText.text = "---";
+            PlayerPrefs.DeleteKey("Photon.Menu.Username");
+            // --- THÊM DÒNG NÀY ĐỂ XÓA BÓNG MA NHÂN VẬT ---
+            PlayerPrefs.DeleteKey("Photon.Menu.Character"); 
+            PlayerPrefs.Save();
+
             FusionMenuPanel.SetActive(false);
             AuthPanel.SetActive(true);
             
-            // 3. Xóa trắng các ô chữ và hiện thông báo
+            // Ép tượng nhân vật quay về mặc định ngay lập tức khi đăng xuất
+            var display = FindObjectOfType<LobbyCharacterDisplay>();
+            if (display != null) display.UpdateDisplay();
+
             EmailInput.text = "";
             PasswordInput.text = "";
             MessageText.text = "Bạn đã đăng xuất an toàn.";
@@ -176,6 +195,27 @@ namespace SimpleFPS
             else
             {
                 ResetMessageText.text = "❌ Lỗi: Mã OTP sai hoặc đã hết hạn!";
+            }
+        }
+
+
+        // --- HÀM NÀY ĐỂ CÁC NÚT MUA SẮM GỌI ĐẾN ĐỂ ÉP UI NHẢY SỐ ---
+        public void RefreshProfileUI()
+        {
+            if (SupabaseManager.Instance != null && SupabaseManager.Instance.IsLoggedIn)
+            {
+                var profile = SupabaseManager.Instance.CurrentProfile;
+                if (profile != null)
+                {
+                    if (GoldText != null) GoldText.text = profile.Gold.ToString();
+                    if (RankDisplayComp != null) RankDisplayComp.UpdateRank(profile.RankPoints);
+                    Debug.Log("[UI] Đã cập nhật lại số Vàng trên màn hình: " + profile.Gold);
+
+                    // --- THÊM DÒNG NÀY ĐỂ ĐUỔI "BÓNG MA" TÊN CŨ ---
+                    if (UsernameText != null) UsernameText.text = profile.Username; 
+                    
+                    Debug.Log("[UI] Đã cập nhật Tên: " + profile.Username);
+                }
             }
         }
         

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3ad25162401941342a88e72432d7aae1, type: 3}
   m_Name: PhotonMenuConfig
   m_EditorClassIdentifier: 
-  _maxPlayers: 8
+  _maxPlayers: 4
   _adaptFramerateForMobilePlatform: 0
   _availableAppVersions: []
   _availableRegions:
@@ -23,8 +23,8 @@ MonoBehaviour:
   - Name: Deathmatch
     ScenePath: Assets/Scenes/Deathmatch.unity
     Preview: {fileID: 21300000, guid: 852d3aabadb24794194acd945f7e9e13, type: 3}
-  - Name: 2vs2
-    ScenePath: Assets/Scenes/2vs2.unity
+  - Name: 2 vs 2
+    ScenePath: Assets/Scenes/new 2 2.unity
     Preview: {fileID: 21300000, guid: 852d3aabadb24794194acd945f7e9e13, type: 3}
   _machineId: {fileID: -755480892457977500, guid: 14d0ba76e6402554fb21eb7d976871ff, type: 3}
   _codeGenerator: {fileID: 11400000, guid: 2d88136449f10fb4da15557de6b21b72, type: 2}

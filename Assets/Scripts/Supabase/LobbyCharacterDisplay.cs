@@ -5,25 +5,35 @@ namespace SimpleFPS
     public class LobbyCharacterDisplay : MonoBehaviour
     {
         [Header("Tủ đồ trưng bày ngoài sảnh")]
-        public GameObject[] LobbyModels; // Kéo thả các TƯỢNG ở Menu vào đây
+        public GameObject[] LobbyModels; 
 
         private void OnEnable()
         {
-            // Mỗi khi bật Menu lên, tự động cập nhật tượng
             UpdateDisplay();
         }
 
         public void UpdateDisplay()
         {
-            // Đọc tên nhân vật đang trang bị (Mặc định là Char_Adam nếu chưa có)
-            string equippedChar = PlayerPrefs.GetString("Photon.Menu.Character", "Char_Adam");
+            string equippedChar = "Char_Adam"; // Mặc định
 
-            // Bật/tắt tượng
+            // CHIẾN THUẬT MỚI:
+            // 1. Nếu đã đăng nhập -> Lấy nhân vật CHUẨN từ Profile của Server
+            if (SupabaseManager.Instance != null && SupabaseManager.Instance.IsLoggedIn)
+            {
+                equippedChar = SupabaseManager.Instance.CurrentProfile.CurrentCharacter;
+            }
+            // 2. Nếu chưa đăng nhập (đang ở màn hình Login) -> Mới dùng đến PlayerPrefs (cache)
+            else
+            {
+                equippedChar = PlayerPrefs.GetString("Photon.Menu.Character", "Char_Adam");
+            }
+
+            Debug.Log($"[LOBBY] Đang hiển thị nhân vật cho Profile hiện tại: '{equippedChar}'");
+
             foreach (var model in LobbyModels)
             {
                 if (model != null)
                 {
-                    // Tên tượng phải đặt khớp 100% với tên nhân vật (vd: Char_Adam)
                     model.SetActive(model.name == equippedChar);
                 }
             }

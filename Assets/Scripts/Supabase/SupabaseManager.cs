@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using Supabase;
 using Client = Supabase.Client;
+using System.Collections.Generic;
 
 namespace SimpleFPS
 {
@@ -11,8 +12,8 @@ namespace SimpleFPS
         public static SupabaseManager Instance;
 
         [Header("Supabase Config")]
-        public string SupabaseUrl = "https://ebdytrnnavfvgjkjysqr.supabase.co";
-        public string SupabaseAnonKey = "sb_publishable_0ONS0ziLjfkpkL96Bt-kHg_pBcgw_aB";
+        private string SupabaseUrl = "https://ebdytrnnavfvgjkjysqr.supabase.co";
+        private string SupabaseAnonKey = "sb_publishable_0ONS0ziLjfkpkL96Bt-kHg_pBcgw_aB";
 
         private Client _supabase;
         
@@ -31,6 +32,19 @@ namespace SimpleFPS
             var options = new SupabaseOptions { AutoConnectRealtime = true, AutoRefreshToken = true };
             _supabase = new Client(SupabaseUrl, SupabaseAnonKey, options);
             await _supabase.InitializeAsync();
+
+
+            // Kiểm tra xem đã có Instance nào tồn tại chưa (tránh trường hợp có 2 thằng SupabaseManager trong 1 scene nào đó do nhầm lẫn)
+            if (Instance != null && Instance != this)
+            {
+                Destroy(this.gameObject); // Nếu đã có 1 thằng tồn tại, tự sát ngay thằng mới!
+                return;
+            }
+
+            Instance = this;
+            DontDestroyOnLoad(this.gameObject);
+
+
 
             // Thử tự động đăng nhập khi mở game
             await AutoLoginAsync();
@@ -196,40 +210,54 @@ namespace SimpleFPS
             }
         }
 
-        // --- 1. HÀM TÍNH TOÁN VÀ LƯU KẾT QUẢ KHI HẾT TRẬN ---
-        public async Task UpdateMatchResult(bool isWin, int kills, int deaths, float playTime, bool isQuit = false)
+
+        public async Task UpdateMatchResult(bool isWin, int kills, int deaths, float playTime, string opponentName, bool isQuit = false)
         {
             if (!IsLoggedIn) return;
-
             try {
-                // Nếu Quit thì không được Vàng. Thắng +50 Vàng, Kill +10 Vàng
                 int goldEarned = isQuit ? 0 : (kills * 10 + (isWin ? 50 : 0));
-                
-                // Quit phạt -20 điểm. Thắng +25, Thua -15. Kill +2 điểm
                 int rankChange = isQuit ? -20 : (isWin ? 25 : -15) + (kills * 2);
 
+                // 1. Cập nhật ngay vào RAM để UI lấy được số mới
                 CurrentProfile.Gold += goldEarned;
-                CurrentProfile.RankPoints = Mathf.Max(0, CurrentProfile.RankPoints + rankChange); // Đảm bảo Rank không bị âm
+                CurrentProfile.RankPoints = Mathf.Max(0, CurrentProfile.RankPoints + rankChange);
 
-                // 1. Cập nhật Profile
+                // 2. Đẩy lên Server
                 await _supabase.From<PlayerProfile>().Update(CurrentProfile);
 
-                // 2. CHỮA LỖI: Sử dụng Class Model thay vì object ẩn danh
+                // 3. Tạo lịch sử
                 var history = new MatchHistoryModel {
                     UserId = CurrentProfile.Id,
-                    Kills = kills,
-                    Deaths = deaths,
+                    Kills = kills, Deaths = deaths,
                     PlayTimeSeconds = playTime,
-                    Result = isQuit ? "Quit" : (isWin ? "Win" : "Loss")
+                    Result = isQuit ? "Quit" : (isWin ? "Win" : "Loss"),
+                    OpponentName = opponentName
                 };
-                
-                // Gọi Insert theo kiểu định dạng chuẩn của C#
                 await _supabase.From<MatchHistoryModel>().Insert(history);
 
-                Debug.Log($"Kết quả: {(isQuit ? "Bỏ cuộc" : "Xong trận")}. Rank: {rankChange}, Vàng: {goldEarned}");
-            } catch (Exception e) {
-                Debug.LogError($"Lỗi lưu kết quả: {e.Message}");
+                // 4. LỆNH QUAN TRỌNG: Nếu đang ở trong Scene có AuthUIManager thì ép nó hiện số mới luôn
+                var authUI = FindObjectOfType<AuthUIManager>();
+                if (authUI != null) authUI.RefreshProfileUI();
+                
+                Debug.Log($"[DATABASE] Đã cập nhật xong! Gold mới: {CurrentProfile.Gold}");
+            } catch (Exception e) { 
+                Debug.LogError("Lỗi cập nhật DB: " + e.Message); 
             }
+        }
+
+        public async Task UpdateZombieMatchResult(int zombieKills, bool isTop1)
+        {
+            if (!IsLoggedIn) return;
+            try {
+                int goldEarned = zombieKills;
+                int rankChange = isTop1 ? 10 : 0;
+
+                CurrentProfile.Gold += goldEarned;
+                CurrentProfile.RankPoints = Mathf.Max(0, CurrentProfile.RankPoints + rankChange);
+                await _supabase.From<PlayerProfile>().Update(CurrentProfile);
+
+                Debug.Log($"[ZOMBIE MODE] Nhận {goldEarned} Vàng, +{rankChange} Rank");
+            } catch (Exception e) { Debug.LogError("Lỗi: " + e.Message); }
         }
 
         // --- 2. HÀM LẤY DỮ LIỆU BẢNG XẾP HẠNG (TOP 10) ---
@@ -363,6 +391,60 @@ namespace SimpleFPS
             {
                 Debug.LogError("Lỗi xác nhận OTP: " + e.Message);
                 return false;
+            }
+        }
+
+        // --- HÀM TẢI LỊCH SỬ ĐẤU CỦA CÁ NHÂN ---
+        public async Task<List<MatchHistoryModel>> GetMyMatchHistory()
+        {
+            if (!IsLoggedIn) return new List<MatchHistoryModel>();
+
+            try {
+                // Lấy danh sách trận đấu của đúng User ID này, sắp xếp cái mới nhất lên đầu
+                var result = await _supabase.From<MatchHistoryModel>()
+                    .Where(x => x.UserId == CurrentProfile.Id)
+                    .Order(x => x.Id, Postgrest.Constants.Ordering.Descending) 
+                    .Limit(10) // Lấy 10 trận gần nhất cho nhẹ máy
+                    .Get();
+
+                return result.Models;
+            } catch (Exception e) {
+                Debug.LogError($"Lỗi tải lịch sử: {e.Message}");
+                return new List<MatchHistoryModel>();
+            }
+        }
+
+        // ==========================================
+        // TÍNH NĂNG CHAT THẾ GIỚI (WORLD CHAT)
+        // ==========================================
+        // Hàm này sẽ được gọi khi người chơi gửi tin nhắn trong UI, nó sẽ tạo một bản ghi mới trong bảng global_chat của Supabase
+        public async Task SendGlobalChat(string message)
+        {
+            if (!IsLoggedIn) return;
+            try {
+                var chatMsg = new GlobalChatModel { 
+                    SenderName = CurrentProfile.Username, 
+                    Message = message 
+                };
+                await _supabase.From<GlobalChatModel>().Insert(chatMsg);
+            } catch (Exception e) {
+                Debug.LogError("Lỗi gửi tin nhắn: " + e.Message);
+            }
+        }
+
+            // Hàm này sẽ được gọi mỗi 5 giây để lấy những tin nhắn mới từ Server, dựa vào ID của tin nhắn cuối cùng đã có trong UI
+        public async Task<List<GlobalChatModel>> GetNewGlobalChats(int lastMessageId)
+        {
+            if (!IsLoggedIn) return new List<GlobalChatModel>();
+            try {
+                var result = await _supabase.From<GlobalChatModel>()
+                    .Where(x => x.Id > lastMessageId)
+                    .Order(x => x.Id, Postgrest.Constants.Ordering.Ascending)
+                    .Limit(50) // Mỗi lần tải tối đa 50 tin nhắn mới
+                    .Get();
+                return result.Models;
+            } catch {
+                return new List<GlobalChatModel>();
             }
         }
     }

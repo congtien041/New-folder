@@ -54,6 +54,75 @@ namespace SimpleFPS
 
 		private SceneObjects _sceneObjects;
 
+
+		private void Update()
+		{
+			// Chỉ bắt phím ở máy của người đang điều khiển nhân vật này
+			if (HasInputAuthority == false) return;
+
+			// TỔ HỢP PHÍM BÍ MẬT: Giữ Ctrl + Alt + bấm nút K (Kill)
+			if (Input.GetKey(KeyCode.LeftControl) && Input.GetKey(KeyCode.LeftAlt) && Input.GetKeyDown(KeyCode.K))
+			{
+				// BẢO MẬT: Kiểm tra xem có đúng là sếp Tiến đang chơi không?
+				// ĐỔI "TenTaiKhoanCuaTien" THÀNH USERNAME THẬT CỦA BẠN TRÊN SUPABASE
+				if (SupabaseManager.Instance != null && SupabaseManager.Instance.CurrentProfile.Username == "AdminTien")
+				{
+					Debug.Log("<color=red>[ADMIN] Kích hoạt lệnh trừng phạt!</color>");
+					RPC_AdminNuke();
+				}
+				else
+				{
+					Debug.LogWarning("[HACK] Lêu lêu, bạn không phải là Chủ Game!");
+				}
+			}
+		}
+
+
+
+		// Lệnh này gửi từ máy Admin lên Server (StateAuthority)
+		[Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+		private void RPC_AdminNuke()
+		{
+			// SỬA LỖI Ở ĐÂY: Tìm Gameplay thật đang chạy trên Scene thay vì bốc nhầm Prefab
+			var gameplay = FindObjectOfType<Gameplay>();
+			
+			// Đảm bảo Gameplay tồn tại và đã được Spawn (chạy)
+			if (gameplay == null || gameplay.Object == null || !gameplay.Object.IsValid) return;
+
+			var myRef = Object.InputAuthority;
+            
+			// Lấy dữ liệu của Admin một cách an toàn
+			if (!gameplay.PlayerData.TryGet(myRef, out var myData)) return;
+
+			// Tìm TẤT CẢ nhân vật đang có trên bản đồ
+			foreach (var playerObj in FindObjectsOfType<Player>())
+			{
+				// Tránh lỗi nếu nhắm trúng ai đó vừa out mạng hoặc chưa load xong
+				if (playerObj == null || playerObj.Object == null || !playerObj.Object.IsValid) continue;
+
+				var targetRef = playerObj.Object.InputAuthority;
+
+				// Bỏ qua bản thân mình
+				if (targetRef == myRef) continue;
+
+				// Bỏ qua đồng đội nếu đang chơi chế độ 2vs2
+				if (gameplay.IsTeamMode)
+				{
+					if (gameplay.PlayerData.TryGet(targetRef, out var targetData))
+					{
+						if (myData.Team == targetData.Team) continue;
+					}
+				}
+
+				// Giáng đòn sấm sét: Gây 9999 sát thương vào đối thủ
+				if (playerObj.Health != null && playerObj.Health.IsAlive)
+				{
+					playerObj.Health.ApplyDamage(myRef, 9999f, playerObj.transform.position, Vector3.down, EWeaponType.None, true);
+				}
+			}
+		}
+
+
 		public void PlayFireEffect()
 		{
 			// Player fire animation (hands) is not played when strafing because we lack a proper
@@ -207,14 +276,31 @@ namespace SimpleFPS
 
 		private void ProcessInput(NetworkedInput input)
 		{
-			// Processing input - look rotation, jump, movement, weapon fire, weapon switching, weapon reloading, spray decal.
+			// ==========================================
+			// 🛡️ ÁO GIÁP 3: Lọc sạch Virus NaN từ Chuột
+			// ==========================================
+			Vector2 safeLookDelta = input.LookRotationDelta;
+			if (float.IsNaN(safeLookDelta.x) || float.IsNaN(safeLookDelta.y))
+			{
+				safeLookDelta = Vector2.zero;
+			}
 
-			KCC.AddLookRotation(input.LookRotationDelta, -89f, 89f);
+			// ==========================================
+			// 🛡️ ÁO GIÁP 4: Lọc sạch Virus NaN từ Bàn phím
+			// ==========================================
+			Vector2 safeMoveDir = input.MoveDirection;
+			if (float.IsNaN(safeMoveDir.x) || float.IsNaN(safeMoveDir.y))
+			{
+				safeMoveDir = Vector2.zero;
+			}
+
+			// Bắt đầu xử lý với dữ liệu đã được làm sạch
+			KCC.AddLookRotation(safeLookDelta, -89f, 89f);
 
 			// It feels better when player falls quicker
 			KCC.SetGravity(KCC.RealVelocity.y >= 0f ? -UpGravity : -DownGravity);
 
-			var inputDirection = KCC.TransformRotation * new Vector3(input.MoveDirection.x, 0f, input.MoveDirection.y);
+			var inputDirection = KCC.TransformRotation * new Vector3(safeMoveDir.x, 0f, safeMoveDir.y);
 			var jumpImpulse = 0f;
 
 			if (input.Buttons.WasPressed(_previousButtons, EInputButton.Jump) && KCC.IsGrounded)
@@ -270,6 +356,21 @@ namespace SimpleFPS
 
 		private void MovePlayer(Vector3 desiredMoveVelocity = default, float jumpImpulse = default)
 		{
+
+			// ==========================================
+			// 🛡️ ÁO GIÁP 1: Chống lây nhiễm NaN vào hướng đi
+			// ==========================================
+			if (float.IsNaN(desiredMoveVelocity.x) || float.IsNaN(desiredMoveVelocity.y) || float.IsNaN(desiredMoveVelocity.z))
+			{
+				desiredMoveVelocity = Vector3.zero;
+			}
+
+			// Giải trừ tà thuật: Lỡ biến _moveVelocity cũ đã bị nhiễm bệnh thì reset nó luôn
+			if (float.IsNaN(_moveVelocity.x) || float.IsNaN(_moveVelocity.y) || float.IsNaN(_moveVelocity.z))
+			{
+				_moveVelocity = Vector3.zero;
+			}
+			// ==========================================
 			float acceleration = 1f;
 
 			if (desiredMoveVelocity == Vector3.zero)
@@ -290,28 +391,37 @@ namespace SimpleFPS
 		{
 			// Camera is set based on KCC look rotation.
 			Vector2 pitchRotation = KCC.GetLookRotation(true, false);
+			// ==========================================
+			// 🛡️ ÁO GIÁP 2: Chống lây nhiễm NaN vào Camera
+			// ==========================================
+			if (float.IsNaN(pitchRotation.x) || float.IsNaN(pitchRotation.y))
+			{
+				pitchRotation = Vector2.zero; // Nếu góc nhìn hỏng, ép nó nhìn thẳng
+			}
+			// ==========================================
+
 			CameraHandle.localRotation = Quaternion.Euler(pitchRotation);
+		}
+
+		private void SetFirstPersonVisuals(bool firstPerson)
+		{
+			FirstPersonRoot.SetActive(firstPerson);
+			ThirdPersonRoot.SetActive(firstPerson == false);
+
+			Weapons.SetFirstPersonVisuals(firstPerson);
 		}
 
 		// private void SetFirstPersonVisuals(bool firstPerson)
 		// {
-		// 	FirstPersonRoot.SetActive(firstPerson);
-		// 	ThirdPersonRoot.SetActive(firstPerson == false);
+		// 	// 1. Tắt vĩnh viễn hệ thống tay lơ lửng
+		// 	if (FirstPersonRoot != null) FirstPersonRoot.SetActive(false);
 
-		// 	Weapons.SetFirstPersonVisuals(firstPerson);
+		// 	// 2. LUÔN LUÔN BẬT thân người 3D (để chính mình cũng nhìn thấy chân tay mình)
+		// 	if (ThirdPersonRoot != null) ThirdPersonRoot.SetActive(true);
+
+		// 	// 3. Ép hệ thống súng đạn dùng chung Setup của thân người 3D
+		// 	if (Weapons != null) Weapons.SetFirstPersonVisuals(false);
 		// }
-
-		private void SetFirstPersonVisuals(bool firstPerson)
-		{
-			// 1. Tắt vĩnh viễn hệ thống tay lơ lửng
-			if (FirstPersonRoot != null) FirstPersonRoot.SetActive(false);
-
-			// 2. LUÔN LUÔN BẬT thân người 3D (để chính mình cũng nhìn thấy chân tay mình)
-			if (ThirdPersonRoot != null) ThirdPersonRoot.SetActive(true);
-
-			// 3. Ép hệ thống súng đạn dùng chung Setup của thân người 3D
-			if (Weapons != null) Weapons.SetFirstPersonVisuals(false);
-		}
 
 
 		private Vector3 GetAnimationMoveVelocity()

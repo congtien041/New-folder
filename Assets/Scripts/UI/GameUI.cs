@@ -25,12 +25,20 @@ namespace SimpleFPS
 		// Called from NetworkEvents on NetworkRunner object
 		public void OnRunnerShutdown(NetworkRunner runner, ShutdownReason reason)
 		{
-			if (GameOverView.gameObject.activeSelf)
-				return; // Regular shutdown - GameOver already active
-
-			ScoreboardView.SetActive(false);
-			SettingsView.gameObject.SetActive(false);
-			MenuView.gameObject.SetActive(false);
+            // NẾU PHÒNG BỊ SẬP ĐỘT NGỘT MÀ TRẬN ĐẤU VẪN ĐANG DIỄN RA
+            if (Gameplay != null && Gameplay.State == EGameplayState.Running)
+            {
+                // Giả định: Người kia Out (Host tắt game) -> Mình mặc định Thắng
+                if (SupabaseManager.Instance != null && SupabaseManager.Instance.IsLoggedIn)
+                {
+                    if (Gameplay.PlayerData.TryGet(runner.LocalPlayer, out var myData))
+                    {
+                        float playTime = Gameplay.GameDuration - Gameplay.RemainingTime.RemainingTime(runner).GetValueOrDefault();
+                        // Thưởng thắng, cộng điểm bình thường
+                        _ = SupabaseManager.Instance.UpdateMatchResult(true, myData.Kills, myData.Deaths, playTime, "RageQuitter", false);
+                    }
+                }
+            }
 
 			DisconnectedView.SetActive(true);
 		}

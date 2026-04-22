@@ -161,5 +161,21 @@ namespace Fusion.Menu {
         _playersGameObject.SetActive(false);
       }
     }
+
+    // Gắn hàm này vào một nút "Mời Thế Giới" trên giao diện Phòng
+    // public async void ShareRoomToGlobalChat() 
+    // {
+    //     string code = _codeText.text; // Lấy mã phòng hiện tại
+        
+    //     // Tạo một tin nhắn chứa thẻ <link> ẩn mã phòng bên trong
+    //     string msg = $"<color=#00ff88>Đã tạo phòng Giao lưu! <link=\"{code}\"><u><b>[BẤM VÀO ĐÂY ĐỂ THAM GIA PHÒNG: {code}]</b></u></link></color>";
+        
+    //     // Gửi lên Kênh Chat bằng hệ thống của chúng ta
+    //     if (SimpleFPS.SupabaseManager.Instance != null)
+    //     {
+    //         await SimpleFPS.SupabaseManager.Instance.SendGlobalChat(msg);
+    //         Debug.Log("Đã gửi lời mời lên Kênh Thế Giới!");
+    //     }
+    // }
   }
 }

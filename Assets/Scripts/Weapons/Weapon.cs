@@ -4,345 +4,370 @@ using UnityEngine.Serialization;
 
 namespace SimpleFPS
 {
-	public enum EWeaponType
-	{
-		None,
-		Pistol,
-		Rifle,
-		Shotgun,
-	}
+    public enum EWeaponType
+    {
+        None,
+        Pistol,
+        Rifle,
+        Shotgun,
+    }
 
-	/// <summary>
-	/// Main script that handles all the shooting. Weapon fires hitscan projectiles that are synchronized
-	/// over the networked through projectile data buffer (_projectileData array). Check Projectiles Essentials
-	/// sample where the basic projectile concepts and their implementation in Fusion is explained in detail.
-	/// </summary>
-	public class Weapon : NetworkBehaviour
-	{
-		public EWeaponType Type;
+    /// <summary>
+    /// Main script that handles all the shooting. Weapon fires hitscan projectiles that are synchronized
+    /// over the networked through projectile data buffer (_projectileData array). Check Projectiles Essentials
+    /// sample where the basic projectile concepts and their implementation in Fusion is explained in detail.
+    /// </summary>
+    public class Weapon : NetworkBehaviour
+    {
+        public EWeaponType Type;
 
-		[Header("Fire Setup")]
-		public bool        IsAutomatic = true;
-		public float       Damage = 10f;
-		public int         FireRate = 100;
-		[Range(1, 20)]
-		public int         ProjectilesPerShot = 1;
-		public float       Dispersion = 0f;
-		public LayerMask   HitMask;
-		public float       MaxHitDistance = 100f;
+        [Header("Fire Setup")]
+        public bool        IsAutomatic = true;
+        public float       Damage = 10f;
+        public int         FireRate = 100;
+        [Range(1, 20)]
+        public int         ProjectilesPerShot = 1;
+        public float       Dispersion = 0f;
+        public LayerMask   HitMask;
+        public float       MaxHitDistance = 100f;
 
-		[Header("Ammo")]
-		public int         MaxClipAmmo = 12;
-		public int         StartAmmo = 25;
-		public float       ReloadTime = 2f;
+        [Header("Ammo")]
+        public int         MaxClipAmmo = 12;
+        public int         StartAmmo = 25;
+        public float       ReloadTime = 2f;
 
-		[Header("Visuals")]
-		public Sprite      Icon;
-		public string      Name;
-		public Animator    WeaponAnimator;
-		public RuntimeAnimatorController HandsAnimatorController;
+        [Header("Visuals")]
+        public Sprite      Icon;
+        public string      Name;
+        public Animator    WeaponAnimator;
+        public RuntimeAnimatorController HandsAnimatorController;
 
-		[Header("Holding")]
-		public Transform   FirstPersonPivot;
-		public Transform   ThirdPersonPivot;
-		public Transform   LeftHandHandle;
+        [Header("Holding")]
+        public Transform   FirstPersonPivot;
+        public Transform   ThirdPersonPivot;
+        public Transform   LeftHandHandle;
 
-		[Header("Fire Effect")]
-		[FormerlySerializedAs("MuzzleTransform")]
-		public Transform   MuzzleTransform;
-		public GameObject  MuzzleEffectPrefab;
-		public ProjectileVisual ProjectileVisualPrefab;
+        [Header("Fire Effect")]
+        [FormerlySerializedAs("MuzzleTransform")]
+        public Transform   MuzzleTransform;
+        public GameObject  MuzzleEffectPrefab;
+        public ProjectileVisual ProjectileVisualPrefab;
 
-		[Header("Sounds")]
-		public AudioSource FireSound;
-		public AudioSource ReloadingSound;
-		public AudioSource EmptyClipSound;
+        [Header("Sounds")]
+        public AudioSource FireSound;
+        public AudioSource ReloadingSound;
+        public AudioSource EmptyClipSound;
 
-		public bool HasAmmo => ClipAmmo > 0 || RemainingAmmo > 0;
+        public bool HasAmmo => ClipAmmo > 0 || RemainingAmmo > 0;
 
-		[Networked, HideInInspector]
-		public NetworkBool IsCollected { get; set; }
-		[Networked, HideInInspector]
-		public NetworkBool IsReloading { get; set; }
-		[Networked, HideInInspector]
-		public int ClipAmmo { get; set; }
-		[Networked, HideInInspector]
-		public int RemainingAmmo { get; set; }
+        [Networked, HideInInspector]
+        public NetworkBool IsCollected { get; set; }
+        [Networked, HideInInspector]
+        public NetworkBool IsReloading { get; set; }
+        [Networked, HideInInspector]
+        public int ClipAmmo { get; set; }
+        [Networked, HideInInspector]
+        public int RemainingAmmo { get; set; }
 
-		[Networked]
-		private int _fireCount { get; set; }
-		[Networked]
-		private TickTimer _fireCooldown { get; set; }
-		[Networked, Capacity(32)]
-		private NetworkArray<ProjectileData> _projectileData { get; }
+        [Networked]
+        private int _fireCount { get; set; }
+        [Networked]
+        private TickTimer _fireCooldown { get; set; }
+        [Networked, Capacity(32)]
+        private NetworkArray<ProjectileData> _projectileData { get; }
 
-		private int _fireTicks;
-		private int _visibleFireCount;
-		private bool _reloadingVisible;
-		private GameObject _muzzleEffectInstance;
-		private SceneObjects _sceneObjects;
+        private int _fireTicks;
+        private int _visibleFireCount;
+        private bool _reloadingVisible;
+        private GameObject _muzzleEffectInstance;
+        private SceneObjects _sceneObjects;
 
-		public bool Fire(Vector3 firePosition, Vector3 fireDirection, bool justPressed)
-		{
-			if (IsCollected == false)
-				return false;
-			if (justPressed == false && IsAutomatic == false)
-				return false;
-			if (IsReloading)
-				return false;
-			if (_fireCooldown.ExpiredOrNotRunning(Runner) == false)
-				return false;
+        public bool Fire(Vector3 firePosition, Vector3 fireDirection, bool justPressed)
+        {
+            if (IsCollected == false)
+                return false;
+            if (justPressed == false && IsAutomatic == false)
+                return false;
+            if (IsReloading)
+                return false;
+            if (_fireCooldown.ExpiredOrNotRunning(Runner) == false)
+                return false;
 
-			if (ClipAmmo <= 0)
-			{
-				PlayEmptyClipSound(justPressed);
-				return false;
-			}
-
-			// Random needs to be initialized with same seed on both input and
-			// state authority to ensure the projectiles are fired in the same direction on both.
-			Random.InitState(Runner.Tick * unchecked((int)Object.Id.Raw));
-
-			for (int i = 0; i < ProjectilesPerShot; i++)
-			{
-				var projectileDirection = fireDirection;
-
-				if (Dispersion > 0f)
-				{
-					// We use unit sphere on purpose -> non-uniform distribution (more projectiles in the center).
-					var dispersionRotation = Quaternion.Euler(Random.insideUnitSphere * Dispersion);
-					projectileDirection = dispersionRotation * fireDirection;
-				}
-
-				FireProjectile(firePosition, projectileDirection);
-			}
-
-			_fireCooldown = TickTimer.CreateFromTicks(Runner, _fireTicks);
-			ClipAmmo--;
-
-			return true;
-		}
-
-		public void Reload()
-		{
-			if (IsCollected == false)
-				return;
-			if (ClipAmmo >= MaxClipAmmo)
-				return;
-			if (RemainingAmmo <= 0)
-				return;
-			if (IsReloading)
-				return;
-			if (_fireCooldown.ExpiredOrNotRunning(Runner) == false)
-				return; // Fire finishing.
-
-			IsReloading = true;
-			_fireCooldown = TickTimer.CreateFromSeconds(Runner, ReloadTime);
-		}
-
-		public void AddAmmo(int amount)
-		{
-			RemainingAmmo += amount;
-		}
-
-		public void ToggleVisibility(bool isVisible)
-		{
-			gameObject.SetActive(isVisible);
-
-			if (_muzzleEffectInstance != null)
-			{
-				_muzzleEffectInstance.SetActive(false);
-			}
-		}
-
-		public float GetReloadProgress()
-		{
-			if (IsReloading == false)
-				return 1f;
-
-			return 1f - _fireCooldown.RemainingTime(Runner).GetValueOrDefault() / ReloadTime;
-		}
-
-		public override void Spawned()
-		{
-			if (HasStateAuthority)
-			{
-				ClipAmmo = Mathf.Clamp(StartAmmo, 0, MaxClipAmmo);
-				RemainingAmmo = StartAmmo - ClipAmmo;
-			}
-
-			_visibleFireCount = _fireCount;
-
-			float fireTime = 60f / FireRate;
-			_fireTicks = Mathf.CeilToInt(fireTime / Runner.DeltaTime);
-
-			_muzzleEffectInstance = Instantiate(MuzzleEffectPrefab, MuzzleTransform);
-			_muzzleEffectInstance.SetActive(false);
-
-			_sceneObjects = Runner.GetSingleton<SceneObjects>();
-		}
-
-		public override void FixedUpdateNetwork()
-		{
-			if (IsCollected == false)
-				return;
-
-			if (ClipAmmo == 0)
-			{
-				// Try auto-reload.
-				Reload();
-			}
-
-			if (IsReloading && _fireCooldown.ExpiredOrNotRunning(Runner))
-			{
-				// Reloading finished.
-				IsReloading = false;
-
-				int reloadAmmo = MaxClipAmmo - ClipAmmo;
-				reloadAmmo = Mathf.Min(reloadAmmo, RemainingAmmo);
-
-				ClipAmmo += reloadAmmo;
-				RemainingAmmo -= reloadAmmo;
-
-				// Add small prepare time after reload.
-				_fireCooldown = TickTimer.CreateFromSeconds(Runner, 0.25f);
-			}
-		}
-
-		public override void Render()
-		{
-			if (_visibleFireCount < _fireCount)
-			{
-				PlayFireEffect();
-			}
-
-			// Prepare projectile visuals for all projectiles that were not displayed yet.
-			for (int i = _visibleFireCount; i < _fireCount; i++)
-			{
-				var data = _projectileData[i % _projectileData.Length];
-
-				var projectileVisual = Instantiate(ProjectileVisualPrefab, MuzzleTransform.position, MuzzleTransform.rotation);
-				projectileVisual.SetHit(data.HitPosition, data.HitNormal, data.ShowHitEffect);
-			}
-
-			_visibleFireCount = _fireCount;
-
-			if (_reloadingVisible != IsReloading)
-			{
-				if (IsReloading)
-				{
-					WeaponAnimator.SetTrigger("Reload");
-					ReloadingSound.Play();
-				}
-
-				_reloadingVisible = IsReloading;
-			}
-		}
-
-		private void FireProjectile(Vector3 firePosition, Vector3 fireDirection)
-		{
-			var projectileData = new ProjectileData();
-
-			var hitOptions = HitOptions.IncludePhysX | HitOptions.IgnoreInputAuthority;
-
-			// Whole projectile path and effects are immediately processed (= hitscan projectile).
-			if (Runner.LagCompensation.Raycast(firePosition, fireDirection, MaxHitDistance,
-				    Object.InputAuthority, out var hit, HitMask, hitOptions))
-			{
-				projectileData.HitPosition = hit.Point;
-				projectileData.HitNormal = hit.Normal;
-
-				if (hit.Hitbox != null)
-				{
-					ApplyDamage(hit.Hitbox, hit.Point, fireDirection);
-				}
-				else
-				{
-					// Hit effect is shown only when player hits solid object.
-					projectileData.ShowHitEffect = true;
-				}
-			}
-
-			_projectileData.Set(_fireCount % _projectileData.Length, projectileData);
-			_fireCount++;
-		}
-
-		private void PlayFireEffect()
-		{
-			if (FireSound != null)
-			{
-				FireSound.PlayOneShot(FireSound.clip);
-			}
-
-			// Reset muzzle effect visibility.
-			_muzzleEffectInstance.SetActive(false);
-			_muzzleEffectInstance.SetActive(true);
-
-			WeaponAnimator.SetTrigger("Fire");
-
-			GetComponentInParent<Player>().PlayFireEffect();
-		}
-
-		private void ApplyDamage(Hitbox enemyHitbox, Vector3 position, Vector3 direction)
-		{
-			var enemyHealth = enemyHitbox.Root.GetComponent<Health>();
-			if (enemyHealth == null || enemyHealth.IsAlive == false)
-				return;
-
-				// --- ĐOẠN CODE MỚI: CHẶN BẮN ĐỒNG ĐỘI ---
-			// KIỂM TRA XEM CÓ ĐANG CHƠI CHẾ ĐỘ TEAM KHÔNG
-            if (_sceneObjects.Gameplay.IsTeamMode)
+            if (ClipAmmo <= 0)
             {
-			    if (_sceneObjects.Gameplay.PlayerData.TryGet(Object.InputAuthority, out var myData) &&
-			        _sceneObjects.Gameplay.PlayerData.TryGet(enemyHealth.Object.InputAuthority, out var enemyData))
-			    {
-				    if (myData.Team == enemyData.Team) return; // Chặn sát thương đồng đội
-			    }
+                PlayEmptyClipSound(justPressed);
+                return false;
             }
-			float damageMultiplier = enemyHitbox is BodyHitbox bodyHitbox ? bodyHitbox.DamageMultiplier : 1f;
-			bool isCriticalHit = damageMultiplier > 1f;
 
-			float damage = Damage * damageMultiplier;
-			if (_sceneObjects.Gameplay.DoubleDamageActive)
-			{
-				damage *= 2f;
-			}
+            Random.InitState(Runner.Tick * unchecked((int)Object.Id.Raw));
 
-			if (enemyHealth.ApplyDamage(Object.InputAuthority, damage, position, direction, Type, isCriticalHit) == false)
-				return;
+            // --- BẮT ĐẦU FIX LỖI ĐƯỜNG ĐẠN XUYÊN TƯỜNG ---
+            
+            // 1. Tìm điểm đích thực tế từ Tâm ngắm Camera (firePosition)
+            Vector3 aimTarget = firePosition + (fireDirection * MaxHitDistance);
+            if (Runner.GetPhysicsScene().Raycast(firePosition, fireDirection, out var camHit, MaxHitDistance, HitMask, QueryTriggerInteraction.Ignore))
+            {
+                aimTarget = camHit.point; // Điểm thực tế tâm ngắm đang chỉ vào (Có thể là tường, đất, hoặc người địch)
+            }
 
-			if (HasInputAuthority && Runner.IsForward)
-			{
-				// For local player show UI hit effect.
-				_sceneObjects.GameUI.PlayerView.Crosshair.ShowHit(enemyHealth.IsAlive == false, isCriticalHit);
-			}
-		}
+            // 2. Tính hướng đạn bay TỪ NÒNG SÚNG đến điểm đích
+            Vector3 realShootDirection = (aimTarget - MuzzleTransform.position).normalized;
 
-		private void PlayEmptyClipSound(bool fireJustPressed)
-		{
-			// For automatic weapons we want to play empty clip sound once after last fire.
-			bool firstEmptyShot = _fireCooldown.TargetTick.GetValueOrDefault() == Runner.Tick - 1;
+            for (int i = 0; i < ProjectilesPerShot; i++)
+            {
+                var projectileDirection = realShootDirection;
 
-			if (fireJustPressed == false && firstEmptyShot == false)
-				return;
+                if (Dispersion > 0f)
+                {
+                    // Thêm độ giật/tỏa đạn (shotgun)
+                    var dispersionRotation = Quaternion.Euler(Random.insideUnitSphere * Dispersion);
+                    projectileDirection = dispersionRotation * projectileDirection;
+                }
 
-			if (EmptyClipSound == null || EmptyClipSound.isPlaying)
-				return;
+                // QUAN TRỌNG: Gọi hàm bắn với điểm xuất phát là MuzzleTransform (NÒNG SÚNG) thay vì Camera
+                FireProjectile(MuzzleTransform.position, projectileDirection);
+            }
+            
+            // --- KẾT THÚC FIX ---
 
-			if (Runner.IsForward && HasInputAuthority)
-			{
-				EmptyClipSound.Play();
-			}
-		}
+            _fireCooldown = TickTimer.CreateFromTicks(Runner, _fireTicks);
+            ClipAmmo--;
 
-		/// <summary>
-		/// Structure representing single projectile shot.
-		/// </summary>
-		private struct ProjectileData : INetworkStruct
-		{
-			public Vector3     HitPosition;
-			public Vector3     HitNormal;
-			public NetworkBool ShowHitEffect;
-		}
-	}
+            return true;
+        }
+
+        public void Reload()
+        {
+            if (IsCollected == false)
+                return;
+            if (ClipAmmo >= MaxClipAmmo)
+                return;
+            if (RemainingAmmo <= 0)
+                return;
+            if (IsReloading)
+                return;
+            if (_fireCooldown.ExpiredOrNotRunning(Runner) == false)
+                return; // Fire finishing.
+
+            IsReloading = true;
+            _fireCooldown = TickTimer.CreateFromSeconds(Runner, ReloadTime);
+        }
+
+        public void AddAmmo(int amount)
+        {
+            RemainingAmmo += amount;
+        }
+
+        public void ToggleVisibility(bool isVisible)
+        {
+            gameObject.SetActive(isVisible);
+
+            if (_muzzleEffectInstance != null)
+            {
+                _muzzleEffectInstance.SetActive(false);
+            }
+        }
+
+        public float GetReloadProgress()
+        {
+            if (IsReloading == false)
+                return 1f;
+
+            return 1f - _fireCooldown.RemainingTime(Runner).GetValueOrDefault() / ReloadTime;
+        }
+
+        public override void Spawned()
+        {
+            if (HasStateAuthority)
+            {
+                ClipAmmo = Mathf.Clamp(StartAmmo, 0, MaxClipAmmo);
+                RemainingAmmo = StartAmmo - ClipAmmo;
+            }
+
+            _visibleFireCount = _fireCount;
+
+            float fireTime = 60f / FireRate;
+            _fireTicks = Mathf.CeilToInt(fireTime / Runner.DeltaTime);
+
+            _muzzleEffectInstance = Instantiate(MuzzleEffectPrefab, MuzzleTransform);
+            _muzzleEffectInstance.SetActive(false);
+
+            _sceneObjects = Runner.GetSingleton<SceneObjects>();
+        }
+
+        public override void FixedUpdateNetwork()
+        {
+            if (IsCollected == false)
+                return;
+
+            if (ClipAmmo == 0)
+            {
+                // Try auto-reload.
+                Reload();
+            }
+
+            if (IsReloading && _fireCooldown.ExpiredOrNotRunning(Runner))
+            {
+                // Reloading finished.
+                IsReloading = false;
+
+                int reloadAmmo = MaxClipAmmo - ClipAmmo;
+                reloadAmmo = Mathf.Min(reloadAmmo, RemainingAmmo);
+
+                ClipAmmo += reloadAmmo;
+                RemainingAmmo -= reloadAmmo;
+
+                // Add small prepare time after reload.
+                _fireCooldown = TickTimer.CreateFromSeconds(Runner, 0.25f);
+            }
+        }
+
+        public override void Render()
+        {
+            if (_visibleFireCount < _fireCount)
+            {
+                PlayFireEffect();
+            }
+
+            // Prepare projectile visuals for all projectiles that were not displayed yet.
+            for (int i = _visibleFireCount; i < _fireCount; i++)
+            {
+                var data = _projectileData[i % _projectileData.Length];
+
+                var projectileVisual = Instantiate(ProjectileVisualPrefab, MuzzleTransform.position, MuzzleTransform.rotation);
+                projectileVisual.SetHit(data.HitPosition, data.HitNormal, data.ShowHitEffect);
+            }
+
+            _visibleFireCount = _fireCount;
+
+            if (_reloadingVisible != IsReloading)
+            {
+                if (IsReloading)
+                {
+                    WeaponAnimator.SetTrigger("Reload");
+                    ReloadingSound.Play();
+                }
+
+                _reloadingVisible = IsReloading;
+            }
+        }
+
+        private void FireProjectile(Vector3 firePosition, Vector3 fireDirection)
+        {
+            var projectileData = new ProjectileData();
+
+            var hitOptions = HitOptions.IncludePhysX | HitOptions.IgnoreInputAuthority;
+
+            // Dùng LagCompensation từ vị trí nòng súng
+            if (Runner.LagCompensation.Raycast(firePosition, fireDirection, MaxHitDistance,
+                    Object.InputAuthority, out var hit, HitMask, hitOptions))
+            {
+                projectileData.HitPosition = hit.Point;
+                projectileData.HitNormal = hit.Normal;
+
+                if (hit.Hitbox != null)
+                {
+                    ApplyDamage(hit.Hitbox, hit.Point, fireDirection);
+                }
+                else
+                {
+                    // Hit effect is shown only when player hits solid object.
+                    projectileData.ShowHitEffect = true;
+                }
+            }
+            else 
+            {
+                // Bắn hụt (lên trời) -> Tia đạn vẫn bay đến hết tầm
+                projectileData.HitPosition = firePosition + fireDirection * MaxHitDistance;
+                projectileData.ShowHitEffect = false;
+            }
+
+            _projectileData.Set(_fireCount % _projectileData.Length, projectileData);
+            _fireCount++;
+        }
+
+        private void PlayFireEffect()
+        {
+            if (FireSound != null)
+            {
+                FireSound.PlayOneShot(FireSound.clip);
+            }
+
+            // Reset muzzle effect visibility.
+            _muzzleEffectInstance.SetActive(false);
+            _muzzleEffectInstance.SetActive(true);
+
+            WeaponAnimator.SetTrigger("Fire");
+
+            GetComponentInParent<Player>().PlayFireEffect();
+        }
+
+        private void ApplyDamage(Hitbox enemyHitbox, Vector3 position, Vector3 direction)
+        {
+            var enemyHealth = enemyHitbox.Root.GetComponent<Health>();
+            if (enemyHealth == null || enemyHealth.IsAlive == false)
+                return;
+
+            // --- LUẬT MỚI: KIỂM TRA CHẾ ĐỘ CHƠI ---
+            if (_sceneObjects.Gameplay.IsZombieMode)
+            {
+                // Nếu là Zombie Mode, cấm bắn tất cả các đối tượng có gắn script Player (Chỉ được bắn Zombie)
+                if (enemyHealth.GetComponent<Player>() != null) return;
+            }
+            else if (_sceneObjects.Gameplay.IsTeamMode)
+            {
+                // Luật cũ của Team Mode
+                if (_sceneObjects.Gameplay.PlayerData.TryGet(Object.InputAuthority, out var myData) &&
+                    _sceneObjects.Gameplay.PlayerData.TryGet(enemyHealth.Object.InputAuthority, out var enemyData))
+                {
+                    if (myData.Team == enemyData.Team) return; 
+                }
+            }
+
+            float damageMultiplier = enemyHitbox is BodyHitbox bodyHitbox ? bodyHitbox.DamageMultiplier : 1f;
+            bool isCriticalHit = damageMultiplier > 1f;
+
+            float damage = Damage * damageMultiplier;
+            if (_sceneObjects.Gameplay.DoubleDamageActive)
+            {
+                damage *= 2f;
+            }
+
+            if (enemyHealth.ApplyDamage(Object.InputAuthority, damage, position, direction, Type, isCriticalHit) == false)
+                return;
+
+            if (HasInputAuthority && Runner.IsForward)
+            {
+                // For local player show UI hit effect.
+                _sceneObjects.GameUI.PlayerView.Crosshair.ShowHit(enemyHealth.IsAlive == false, isCriticalHit);
+            }
+        }
+
+        private void PlayEmptyClipSound(bool fireJustPressed)
+        {
+            // For automatic weapons we want to play empty clip sound once after last fire.
+            bool firstEmptyShot = _fireCooldown.TargetTick.GetValueOrDefault() == Runner.Tick - 1;
+
+            if (fireJustPressed == false && firstEmptyShot == false)
+                return;
+
+            if (EmptyClipSound == null || EmptyClipSound.isPlaying)
+                return;
+
+            if (Runner.IsForward && HasInputAuthority)
+            {
+                EmptyClipSound.Play();
+            }
+        }
+
+        /// <summary>
+        /// Structure representing single projectile shot.
+        /// </summary>
+        private struct ProjectileData : INetworkStruct
+        {
+            public Vector3     HitPosition;
+            public Vector3     HitNormal;
+            public NetworkBool ShowHitEffect;
+        }
+    }
 }
