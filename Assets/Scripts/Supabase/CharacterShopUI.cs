@@ -18,6 +18,9 @@ namespace SimpleFPS
         // ==========================================
         // PHẦN 1: MUA NHÂN VẬT (Dùng chung cho N nhân vật)
         // ==========================================
+        // ==========================================
+        // PHẦN 1: MUA NHÂN VẬT (Dùng chung cho N nhân vật)
+        // ==========================================
         public async void BuyCharacter(string characterId)
         {
             // Kiểm tra xem nhân vật có trong bảng giá không
@@ -35,6 +38,13 @@ namespace SimpleFPS
             if (success)
             {
                 Debug.Log($"Mua {characterId} THÀNH CÔNG! Bây giờ bạn có thể trang bị.");
+
+                // --- BỔ SUNG: ÉP UI CẬP NHẬT LẠI SỐ VÀNG NGAY LẬP TỨC ---
+                var authUI = FindObjectOfType<AuthUIManager>();
+                if (authUI != null) 
+                {
+                    authUI.RefreshProfileUI();
+                }
             }
             else
             {

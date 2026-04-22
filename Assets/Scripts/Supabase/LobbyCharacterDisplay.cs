@@ -5,7 +5,7 @@ namespace SimpleFPS
     public class LobbyCharacterDisplay : MonoBehaviour
     {
         [Header("Tủ đồ trưng bày ngoài sảnh")]
-        public GameObject[] LobbyModels; // Kéo thả các TƯỢNG ở Menu vào đây
+        public GameObject[] LobbyModels; 
 
         private void OnEnable()
         {
@@ -14,35 +14,28 @@ namespace SimpleFPS
 
         public void UpdateDisplay()
         {
-            string equippedChar = PlayerPrefs.GetString("Photon.Menu.Character", "Char_Adam");
-            Debug.Log($"[LOBBY] Bắt đầu quét Sảnh... Tên nhân vật đang tìm: '{equippedChar}'");
+            string equippedChar = "Char_Adam"; // Mặc định
 
-            bool foundTarget = false;
+            // CHIẾN THUẬT MỚI:
+            // 1. Nếu đã đăng nhập -> Lấy nhân vật CHUẨN từ Profile của Server
+            if (SupabaseManager.Instance != null && SupabaseManager.Instance.IsLoggedIn)
+            {
+                equippedChar = SupabaseManager.Instance.CurrentProfile.CurrentCharacter;
+            }
+            // 2. Nếu chưa đăng nhập (đang ở màn hình Login) -> Mới dùng đến PlayerPrefs (cache)
+            else
+            {
+                equippedChar = PlayerPrefs.GetString("Photon.Menu.Character", "Char_Adam");
+            }
+
+            Debug.Log($"[LOBBY] Đang hiển thị nhân vật cho Profile hiện tại: '{equippedChar}'");
 
             foreach (var model in LobbyModels)
             {
                 if (model != null)
                 {
-                    // Kiểm tra xem tên vật thể có khớp 100% với tên đã lưu không
-                    bool isMatch = (model.name == equippedChar);
-                    model.SetActive(isMatch);
-                    
-                    if (isMatch)
-                    {
-                        foundTarget = true;
-                        Debug.Log($"[LOBBY] ---> TÌM THẤY VÀ ĐÃ BẬT TƯỢNG: {model.name}");
-                    }
-                    else
-                    {
-                        Debug.Log($"[LOBBY] Đã tắt tượng: {model.name}");
-                    }
+                    model.SetActive(model.name == equippedChar);
                 }
-            }
-
-            // Nếu quét hết cả mảng mà không có ai trùng tên
-            if (!foundTarget)
-            {
-                Debug.LogWarning($"[LOBBY CẢNH BÁO] Ôi hỏng! Không có bức tượng nào mang tên chính xác là '{equippedChar}' cả. Bạn ra Inspector kiểm tra lại xem có bị dư dấu cách (Space) không nhé!");
             }
         }
     }

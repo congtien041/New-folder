@@ -218,19 +218,31 @@ namespace SimpleFPS
                 int goldEarned = isQuit ? 0 : (kills * 10 + (isWin ? 50 : 0));
                 int rankChange = isQuit ? -20 : (isWin ? 25 : -15) + (kills * 2);
 
+                // 1. Cập nhật ngay vào RAM để UI lấy được số mới
                 CurrentProfile.Gold += goldEarned;
                 CurrentProfile.RankPoints = Mathf.Max(0, CurrentProfile.RankPoints + rankChange);
+
+                // 2. Đẩy lên Server
                 await _supabase.From<PlayerProfile>().Update(CurrentProfile);
 
+                // 3. Tạo lịch sử
                 var history = new MatchHistoryModel {
                     UserId = CurrentProfile.Id,
                     Kills = kills, Deaths = deaths,
                     PlayTimeSeconds = playTime,
                     Result = isQuit ? "Quit" : (isWin ? "Win" : "Loss"),
-                    OpponentName = opponentName // LƯU TÊN ĐỐI THỦ
+                    OpponentName = opponentName
                 };
                 await _supabase.From<MatchHistoryModel>().Insert(history);
-            } catch (Exception e) { Debug.LogError("Lỗi: " + e.Message); }
+
+                // 4. LỆNH QUAN TRỌNG: Nếu đang ở trong Scene có AuthUIManager thì ép nó hiện số mới luôn
+                var authUI = FindObjectOfType<AuthUIManager>();
+                if (authUI != null) authUI.RefreshProfileUI();
+                
+                Debug.Log($"[DATABASE] Đã cập nhật xong! Gold mới: {CurrentProfile.Gold}");
+            } catch (Exception e) { 
+                Debug.LogError("Lỗi cập nhật DB: " + e.Message); 
+            }
         }
 
         public async Task UpdateZombieMatchResult(int zombieKills, bool isTop1)

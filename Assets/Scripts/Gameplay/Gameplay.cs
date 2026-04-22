@@ -72,6 +72,14 @@ namespace SimpleFPS
 		private List<PlayerData> _tempPlayerData = new(16);
 		private List<Transform> _recentSpawnPoints = new(4);
 
+
+		// --- BIẾN ĐÁNH DẤU ĐÃ LƯU ĐIỂM ---
+		private bool _hasSavedStats = false;
+
+
+
+		
+
 		public void PlayerKilled(PlayerRef killerPlayerRef, PlayerRef victimPlayerRef, EWeaponType weaponType, bool isCriticalKill)
         {
             if (HasStateAuthority == false) return;
@@ -401,6 +409,9 @@ namespace SimpleFPS
 			State = EGameplayState.Running;
 			RemainingTime = TickTimer.CreateFromSeconds(Runner, GameDuration);
 
+			// --- THÊM ĐÚNG 1 DÒNG NÀY ĐỂ MỞ KHÓA KHI BẮT ĐẦU VÁN MỚI ---
+			_hasSavedStats = false;
+
 			// Reset player data after skirmish and respawn players.
 			foreach (var playerPair in PlayerData)
 			{
@@ -420,90 +431,79 @@ namespace SimpleFPS
 		private void StopGameplay()
 		{
 			RecalculateStatisticPositions();
-			State = EGameplayState.Finished; // Đánh dấu hết trận
+			State = EGameplayState.Finished; 
 
-			// --- CODE MỚI: TÍNH THẮNG THUA VÀ LƯU RANK ---
+			Debug.Log("<color=cyan>[GAME] Host đã gọi StopGameplay - Đang phát loa RPC cho tất cả người chơi...</color>");
+			RPC_NotifyMatchEnd();
+		}
+
+		[Rpc(RpcSources.StateAuthority, RpcTargets.All, Channel = RpcChannel.Reliable)]
+		private void RPC_NotifyMatchEnd()
+		{
+			// NẾU ĐÃ LƯU RỒI THÌ BỎ QUA KHÔNG LƯU NỮA
+			if (_hasSavedStats) return; 
+			_hasSavedStats = true; // Đánh dấu là đã lưu
+
+			if (SupabaseManager.Instance == null || !SupabaseManager.Instance.IsLoggedIn) return;
+
 			if (PlayerData.TryGet(Runner.LocalPlayer, out var myData))
 			{
 				if (IsZombieMode)
 				{
 					bool isTop1 = (myData.StatisticPosition == 1);
-					int zombieKills = myData.Kills;
-
-					if (SupabaseManager.Instance != null && SupabaseManager.Instance.IsLoggedIn)
-					{
-						_ = SupabaseManager.Instance.UpdateZombieMatchResult(zombieKills, isTop1);
-					}
+					_ = SupabaseManager.Instance.UpdateZombieMatchResult(myData.Kills, isTop1);
 				}
 				else
 				{
 					bool isWin = false;
-				
-					if (IsTeamMode)
-					{
-						// Chế độ 2v2: Đội mình có điểm cao hơn đội kia thì là Thắng
+					if (IsTeamMode) {
 						if (myData.Team == 1 && Team1Score > Team2Score) isWin = true;
 						else if (myData.Team == 2 && Team2Score > Team1Score) isWin = true;
-					}
-					else
-					{
-						// Chế độ Bắn Tự Do (FFA): Đứng Top 1 trên bảng điểm thì là Thắng
+					} else {
 						if (myData.StatisticPosition == 1) isWin = true;
 					}
 
-					bool isRanked = Runner.SessionInfo.IsVisible;
+					// Tạm thời bật true để chắc chắn test được Vàng và Rank
+					bool isRanked = true; 
 
-					if (SupabaseManager.Instance != null && SupabaseManager.Instance.IsLoggedIn)
+					if (isRanked)
 					{
-						if (isRanked)
-						{
-							string enemyName = "Unknown";
-							foreach (var p in PlayerData)
-							{
-								if (p.Key != Runner.LocalPlayer)
-								{
-									enemyName = p.Value.Nickname;
-									break;
-								}
+						string enemyName = "Đối thủ";
+						foreach (var p in PlayerData) {
+							if (p.Key != Runner.LocalPlayer && p.Value.Team != myData.Team) {
+								enemyName = p.Value.Nickname;
+								break;
 							}
-
-							float playTime = GameDuration - RemainingTime.RemainingTime(Runner).GetValueOrDefault();
-							
-							_ = SupabaseManager.Instance.UpdateMatchResult(isWin, myData.Kills, myData.Deaths, playTime, enemyName, false);
 						}
-						else
-						{
-							Debug.Log("Phòng Giao Lưu: Không tính Rank và Vàng!");
-						}
+						float playTime = GameDuration - RemainingTime.RemainingTime(Runner).GetValueOrDefault();
+						_ = SupabaseManager.Instance.UpdateMatchResult(isWin, myData.Kills, myData.Deaths, playTime, enemyName, false);
+						Debug.Log($"<color=green>[SUCCESS] Đã nhận lệnh RPC và lưu điểm: {(isWin ? "THẮNG" : "THUA")}</color>");
 					}
 				}
 			}
-			// ----------------------------------------------
 		}
+
+
 		private void RecalculateStatisticPositions()
 		{
 			if (State == EGameplayState.Finished)
 				return;
 
 			_tempPlayerData.Clear();
-
-			foreach (var pair in PlayerData)
-			{
+			foreach (var pair in PlayerData) {
 				_tempPlayerData.Add(pair.Value);
 			}
 
-			_tempPlayerData.Sort((a, b) =>
-			{
-				if (a.Kills != b.Kills)
-					return b.Kills.CompareTo(a.Kills);
-
+			_tempPlayerData.Sort((a, b) => {
+				if (a.Kills != b.Kills) return b.Kills.CompareTo(a.Kills);
 				return a.LastKillTick.CompareTo(b.LastKillTick);
 			});
 
 			for (int i = 0; i < _tempPlayerData.Count; i++)
 			{
 				var playerData = _tempPlayerData[i];
-				playerData.StatisticPosition = playerData.Kills > 0 ? i + 1 : int.MaxValue;
+				// SỬA Ở ĐÂY: Luôn trao Hạng 1, 2, 3... tương ứng với vị trí, kể cả khi 0 Kills
+				playerData.StatisticPosition = i + 1; 
 
 				PlayerData.Set(playerData.PlayerRef, playerData);
 			}
@@ -541,9 +541,58 @@ namespace SimpleFPS
 		private void RPC_SetPlayerInfo(PlayerRef playerRef, string nickname, string characterID)
 		{
 			var playerData = PlayerData.Get(playerRef);
-			playerData.Nickname = nickname;
-            playerData.CharacterID = characterID; // Lưu nhân vật lên mạng
+			
+			// --- TỐI ƯU HIỂN THỊ TEAM 2vs2 ---
+			if (IsTeamMode)
+			{
+				// Gắn thẻ màu Xanh/Đỏ vào trước tên nhân vật
+				string teamTag = playerData.Team == 1 ? "<color=#00aaff>[TEAM XANH]</color>" : "<color=#ff4444>[TEAM ĐỎ]</color>";
+				playerData.Nickname = $"{teamTag} {nickname}";
+			}
+			else
+			{
+				playerData.Nickname = nickname;
+			}
+
+            playerData.CharacterID = characterID; 
 			PlayerData.Set(playerRef, playerData);
+		}
+
+
+		// ==========================================
+		// HỘP ĐEN CỨU HỘ: TỰ LƯU ĐIỂM KHI BỊ HOST ĐÁ VĂNG (LỖI 104)
+		// ==========================================
+		public override void Despawned(NetworkRunner runner, bool hasState)
+		{
+			// Nếu bị văng mạng, sập phòng mà CHƯA KỊP LƯU ĐIỂM
+			if (!_hasSavedStats && SupabaseManager.Instance != null && SupabaseManager.Instance.IsLoggedIn)
+			{
+				_hasSavedStats = true; // Khóa lại ngay lập tức
+				
+				if (PlayerData.TryGet(Runner.LocalPlayer, out var myData))
+				{
+					Debug.Log("<color=orange>[CỨU HỘ] Server bị tắt đột ngột! Máy Client đang tự động lưu bù điểm...</color>");
+					
+					if (IsZombieMode)
+					{
+						bool isTop1 = (myData.StatisticPosition == 1);
+						_ = SupabaseManager.Instance.UpdateZombieMatchResult(myData.Kills, isTop1);
+					}
+					else
+					{
+						bool isWin = false;
+						if (IsTeamMode) {
+							if (myData.Team == 1 && Team1Score > Team2Score) isWin = true;
+							else if (myData.Team == 2 && Team2Score > Team1Score) isWin = true;
+						} else {
+							if (myData.StatisticPosition == 1) isWin = true;
+						}
+
+						// Gửi bù lên Server (Ghi chú tên đối thủ là "Host out mạng" để dễ phân biệt trong lịch sử)
+						_ = SupabaseManager.Instance.UpdateMatchResult(isWin, myData.Kills, myData.Deaths, 0, "Host out mạng", false);
+					}
+				}
+			}
 		}
 	}
 }
